@@ -1,0 +1,1 @@
+Namespace(scene_name='scene0625_00', exp_name='exp_scene0625_00', exp_dir='./test', data_dir='C:/Users/JTStephens/Downloads/replica/replica/test/office_0_1', iterations=20000, is_sdf_norm=True)
