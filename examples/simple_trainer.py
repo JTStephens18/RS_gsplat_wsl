@@ -578,7 +578,7 @@ class Runner:
 
         #============================ SDF Init ========================================
 
-        neuRISRunner = NeuRISRunner("../NeuRIS/confs/neuris.conf", f'{scene_name}', "train", "", False, -1, cfg)
+        neuRISRunner = NeuRISRunner("../NeuRIS/confs/neuris.conf", f'{cfg.scene_name}', "train", "", False, -1, cfg)
 
         neuRISRunner.writer = SummaryWriter(log_dir="../datasets/office_0_1/runner")
         neuRISRunner.update_learning_rate()
