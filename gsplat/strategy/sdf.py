@@ -159,12 +159,17 @@ class SDFStrategy(Strategy):
         step: int,
         info: Dict[str, Any],
         packed: bool = False,
+        neuRISRunner: Any = None,  # Placeholder for neuRISRunner if needed
     ):
         """Callback function to be executed after the `loss.backward()` call."""
         if step >= self.refine_stop_iter:
             return
 
         self._update_state(params, state, info, step, packed=packed)
+
+        for name, optimizer in optimizers.items():
+          optim_cls = type(optimizer)
+          optimizers[name] = optim_cls(neuRISRunner.parameters(), lr=optimizer.defaults['lr'])
 
         if (
             step > self.refine_start_iter
