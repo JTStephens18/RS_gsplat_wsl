@@ -194,7 +194,7 @@ class Config:
     scene_name: str = "office_0_1"
     exp_name: str = "runner_office_0_1"
     exp_dir: str = "../datasets/office_0_1/runner"
-    data_dir: str = "C:/Users/JTStephens/Downloads/replica/replica/test/office_0_1"
+    data_dir: str = "../datasets/office_0_1"
     iterations: int = 20000
     is_sdf_norm: bool = True
     gs2sdf_from: int = 5000
