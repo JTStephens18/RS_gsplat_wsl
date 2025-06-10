@@ -1,11 +1,14 @@
 import json
 import math
 import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+import sys
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
+from argparse import ArgumentParser
 
 import imageio
 import numpy as np
@@ -35,10 +38,11 @@ from gsplat.compression import PngCompression
 from gsplat.distributed import cli
 from gsplat.optimizers import SelectiveAdam
 from gsplat.rendering import rasterization
-from gsplat.strategy import DefaultStrategy, MCMCStrategy
+from gsplat.strategy import DefaultStrategy, MCMCStrategy, SDFStrategy
 from gsplat_viewer import GsplatViewer, GsplatRenderTabState
 from nerfview import CameraState, RenderTabState, apply_float_colormap
 
+from NeuRIS.exp_runner import Runner as NeuRISRunner
 
 @dataclass
 class Config:
@@ -186,6 +190,28 @@ class Config:
 
     # Whether use fused-bilateral grid
     use_fused_bilagrid: bool = False
+
+    scene_name: str = "office_0_1"
+    exp_name: str = "runner_office_0_1"
+    exp_dir: str = "/runner"
+    data_dir: str = "C:/Users/JTStephens/Downloads/replica/replica/test/office_0_1"
+    iterations: int = 20000
+    is_sdf_norm: bool = True
+    gs2sdf_from: int = 5000
+    gs2sdf_end: int = 5000
+    sdf2gs_from: int = 5000
+    sdf2gs_end: int = 30000
+    is_sdf_edge: bool = False
+    is_sample_gui: bool = False
+    sdfStrategy: SDFStrategy = field(
+        default_factory=SDFStrategy
+    )
+    no_sam_iter: int = 1000
+    sam_add_len: float = 1.0
+    geo_interval: int = 100
+
+
+    
 
     def adjust_steps(self, factor: float):
         self.eval_steps = [int(i * factor) for i in self.eval_steps]
@@ -381,8 +407,10 @@ class Runner:
             self.strategy_state = self.cfg.strategy.initialize_state(
                 scene_scale=self.scene_scale
             )
+            self.sdf_strategy_state = self.cfg.sdfStrategy.initialize_state()
         elif isinstance(self.cfg.strategy, MCMCStrategy):
             self.strategy_state = self.cfg.strategy.initialize_state()
+            self.sdf_strategy_state = self.cfg.sdfStrategy.initialize_state()
         else:
             assert_never(self.cfg.strategy)
 
@@ -488,7 +516,7 @@ class Runner:
         masks: Optional[Tensor] = None,
         rasterize_mode: Optional[Literal["classic", "antialiased"]] = None,
         camera_model: Optional[Literal["pinhole", "ortho", "fisheye"]] = None,
-        **kwargs,
+        **kwcfg,
     ) -> Tuple[Tensor, Tensor, Dict]:
         means = self.splats["means"]  # [N, 3]
         # quats = F.normalize(self.splats["quats"], dim=-1)  # [N, 4]
@@ -497,13 +525,13 @@ class Runner:
         scales = torch.exp(self.splats["scales"])  # [N, 3]
         opacities = torch.sigmoid(self.splats["opacities"])  # [N,]
 
-        image_ids = kwargs.pop("image_ids", None)
+        image_ids = kwcfg.pop("image_ids", None)
         if self.cfg.app_opt:
             colors = self.app_module(
                 features=self.splats["features"],
                 embed_ids=image_ids,
                 dirs=means[None, :, :] - camtoworlds[:, None, :3, 3],
-                sh_degree=kwargs.pop("sh_degree", self.cfg.sh_degree),
+                sh_degree=kwcfg.pop("sh_degree", self.cfg.sh_degree),
             )
             colors = colors + self.splats["colors"]
             colors = torch.sigmoid(colors)
@@ -536,7 +564,7 @@ class Runner:
             camera_model=self.cfg.camera_model,
             with_ut=self.cfg.with_ut,
             with_eval3d=self.cfg.with_eval3d,
-            **kwargs,
+            **kwcfg,
         )
         if masks is not None:
             render_colors[~masks] = 0
@@ -547,6 +575,25 @@ class Runner:
         device = self.device
         world_rank = self.world_rank
         world_size = self.world_size
+
+        #============================ SDF Init ========================================
+
+        neuRISRunner = NeuRISRunner("../NeuRIS/confs/neuris.conf", "scene0625_00", "train", "", False, -1, cfg)
+        print("NeuRISRunner initialized optimizer:", neuRISRunner.optimizer.state_dict())
+
+        neuRISRunner.writer = SummaryWriter(log_dir="C:/Users/JTStephens/Downloads/replica/replica/test/office_0_1/runner")
+        neuRISRunner.update_learning_rate()
+        neuRISRunner.update_iter_step()
+        res_step = neuRISRunner.end_iter - neuRISRunner.iter_step
+
+        if neuRISRunner.dataset.cache_all_data:
+            neuRISRunner.dataset.shuffle() 
+
+        # neuRISRunner.validate_mesh() # save mesh at iter 0
+        logs_summary = {}
+        image_perm = torch.randperm(neuRISRunner.dataset.n_images) 
+
+        #==============================================================================
 
         # Dump cfg.
         if world_rank == 0:
@@ -645,7 +692,7 @@ class Runner:
                 near_plane=cfg.near_plane,
                 far_plane=cfg.far_plane,
                 image_ids=image_ids,
-                render_mode="RGB+ED" if cfg.depth_loss else "RGB",
+                render_mode="RGB+ED" if cfg.depth_loss else "RGB+D",
                 masks=masks,
             )
             if renders.shape[-1] == 4:
@@ -670,6 +717,17 @@ class Runner:
             if cfg.random_bkgd:
                 bkgd = torch.rand(1, 3, device=device)
                 colors = colors + bkgd * (1.0 - alphas)
+
+            
+            self.cfg.sdfStrategy.step_pre_backward(
+                params=self.splats,
+                optimizers=neuRISRunner.optimizer,
+                state=self.strategy_state,
+                step=step,
+                info=info,
+            )
+
+            #print("NeuRIS Optimizer pre_backward ", neuRISRunner.optimizer.state_dict())
 
             self.cfg.strategy.step_pre_backward(
                 params=self.splats,
@@ -723,7 +781,39 @@ class Runner:
 
             loss.backward()
 
-            desc = f"loss={loss.item():.3f}| " f"sh degree={sh_degree_to_use}| "
+            #================== SDF Loss ============================
+
+            iter_i = step
+
+            logs_summary.clear()
+
+            gs_render_conf = camtoworlds, cfg.gs2sdf_from
+
+            input_model, logs_input = neuRISRunner.get_model_input(image_perm, iter_i, gs_render_conf, depths)
+            logs_summary.update(logs_input)
+
+            render_out, logs_render = neuRISRunner.renderer.render(
+                input_model["rays_o"],
+                input_model["rays_d"],
+                input_model["near"].to(self.device),
+                input_model["far"].to(self.device),
+                background_rgb=input_model["background_rgb"],
+                alpha_inter_ratio=neuRISRunner.get_alpha_inter_ratio()
+            )
+
+            logs_summary.update(logs_render)
+            
+            patchmatch_out, logs_patchmatch = neuRISRunner.patch_match(input_model, render_out)
+            logs_summary.update(logs_patchmatch)
+
+            sdf_loss, logs_loss, mask_keep_gt_normal = neuRISRunner.loss_neus(input_model, render_out, neuRISRunner.sdf_network_fine, patchmatch_out)
+            logs_summary.update(logs_loss)
+
+            sdf_loss.backward()
+
+            #========================================================
+
+            desc = f"loss={loss.item():.3f}| " f"sh degree={sh_degree_to_use}| " f"sdf loss={sdf_loss.item():.3f}| "
             if cfg.depth_loss:
                 desc += f"depth loss={depthloss.item():.6f}| "
             if cfg.pose_opt and cfg.pose_noise:
@@ -847,6 +937,7 @@ class Runner:
                     visibility_mask = (info["radii"] > 0).all(-1).any(0)
 
             # optimize
+            #print("[GS] Optimizrs", self.optimizers)
             for optimizer in self.optimizers.values():
                 if cfg.visible_adam:
                     optimizer.step(visibility_mask)
@@ -864,6 +955,23 @@ class Runner:
                 optimizer.zero_grad(set_to_none=True)
             for scheduler in schedulers:
                 scheduler.step()
+
+            #print("NeuRIS Optimizer ", neuRISRunner.optimizer.state_dict())
+
+            # =================== SDF D&P ===========================
+            if isinstance(self.cfg.sdfStrategy, SDFStrategy):
+                self.cfg.sdfStrategy.step_post_backward(
+                    params=self.splats,
+                    optimizers=neuRISRunner.optimizer,
+                    state=self.strategy_state,
+                    step=step,
+                    info=info,
+                    packed=False,
+                )
+            #print("Optimizer test ", neuRISRunner.optimizer.param_groups[0])
+            #print("NeuRIS Optimizer post_backward ", neuRISRunner.optimizer.state_dict())
+
+            # ========================================================
 
             # Run post-backward steps after backward and optimizer
             if isinstance(self.cfg.strategy, DefaultStrategy):
@@ -886,6 +994,40 @@ class Runner:
                 )
             else:
                 assert_never(self.cfg.strategy)
+
+
+            # ================ SDF Optimizer ================
+            # print("NeuRIS Optimizer ", neuRISRunner.optimizer.state_dict())
+            neuRISRunner.optimizer.step()
+            neuRISRunner.optimizer.zero_grad()
+
+            neuRISRunner.iter_step += 1
+
+            logs_val = neuRISRunner.validate(input_model, logs_loss, render_out)
+            logs_summary.update(logs_val)
+
+            logs_summary.update({'Log/lr': neuRISRunner.optimizer.param_groups[0]['lr']})
+            neuRISRunner.write_summary(logs_summary)
+
+            neuRISRunner.update_learning_rate()
+            neuRISRunner.update_iter_step()
+            neuRISRunner.accumulate_rendered_results(input_model, render_out, patchmatch_out,
+                                                b_accum_render_difference = False,
+                                                b_accum_ncc = False,
+                                                b_accum_normal_pts = False)
+
+            if neuRISRunner.iter_step % neuRISRunner.dataset.n_images == 0:
+                image_perm = torch.randperm(neuRISRunner.dataset.n_images)
+
+            # if runner.iter_step % 1000 == 0:
+            #     torch.cuda.empty_cache()
+            
+            if neuRISRunner.iter_step % 99 == 0:
+                torch.cuda.empty_cache()
+
+            #=============================================
+
+            #logging.info(f'Done. [{runner.base_exp_dir}]')
 
             # eval the full set
             if step in [i - 1 for i in cfg.eval_steps]:
@@ -1215,6 +1357,7 @@ if __name__ == "__main__":
             "Gaussian splatting training using densification heuristics from the original paper.",
             Config(
                 strategy=DefaultStrategy(verbose=True),
+                sdfStrategy=SDFStrategy(verbose=True)
             ),
         ),
         "mcmc": (
@@ -1225,6 +1368,7 @@ if __name__ == "__main__":
                 opacity_reg=0.01,
                 scale_reg=0.01,
                 strategy=MCMCStrategy(verbose=True),
+                sdfStrategy=SDFStrategy(verbose=True)
             ),
         ),
     }

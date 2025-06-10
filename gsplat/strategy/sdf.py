@@ -9,7 +9,7 @@ from .ops import duplicate, remove, reset_opa, split
 
 
 @dataclass
-class DefaultStrategy(Strategy):
+class SDFStrategy(Strategy):
     """A default strategy that follows the original 3DGS paper:
 
     `3D Gaussian Splatting for Real-Time Radiance Field Rendering <https://arxiv.org/abs/2308.04079>`_
@@ -83,9 +83,10 @@ class DefaultStrategy(Strategy):
     prune_scale3d: float = 0.1
     prune_scale2d: float = 0.15
     refine_scale2d_stop_iter: int = 0
-    #refine_start_iter: int = 200
-    refine_start_iter: int = 500
-    refine_stop_iter: int = 15_000
+    refine_start_iter: int = 5000
+    #refine_start_iter: int = 10
+    refine_stop_iter: int = 30000
+    #reset_every: int = 3000
     reset_every: int = 3000
     refine_every: int = 100
     pause_refine_after_reset: int = 0
@@ -174,7 +175,7 @@ class DefaultStrategy(Strategy):
             n_dupli, n_split = self._grow_gs(params, optimizers, state, step)
             if self.verbose:
                 print(
-                    f"Step {step}: {n_dupli} GSs duplicated, {n_split} GSs split. "
+                    f"Step {step}: SDF: {n_dupli} GSs duplicated, SDF: {n_split} GSs split. "
                     f"Now having {len(params['means'])} GSs."
                 )
 
@@ -182,7 +183,7 @@ class DefaultStrategy(Strategy):
             n_prune = self._prune_gs(params, optimizers, state, step)
             if self.verbose:
                 print(
-                    f"Step {step}: {n_prune} GSs pruned. "
+                    f"Step {step}: SDF: {n_prune} GSs pruned. "
                     f"Now having {len(params['means'])} GSs."
                 )
 
@@ -193,13 +194,13 @@ class DefaultStrategy(Strategy):
                 state["radii"].zero_()
             torch.cuda.empty_cache()
 
-        if step % self.reset_every == 0:
-            reset_opa(
-                params=params,
-                optimizers=optimizers,
-                state=state,
-                value=self.prune_opa * 2.0,
-            )
+        # if step % self.reset_every == 0:
+        #     reset_opa(
+        #         params=params,
+        #         optimizers=optimizers,
+        #         state=state,
+        #         value=self.prune_opa * 2.0,
+        #     )
 
     def _update_state(
         self,
@@ -231,6 +232,7 @@ class DefaultStrategy(Strategy):
         n_gaussian = len(list(params.values())[0])
 
         if state["grad2d"] is None:
+            print("[SDFStrategy] None triggered")
             state["grad2d"] = torch.zeros(n_gaussian, device=grads.device)
         if state["count"] is None:
             state["count"] = torch.zeros(n_gaussian, device=grads.device)
@@ -249,16 +251,16 @@ class DefaultStrategy(Strategy):
             gs_ids = torch.where(sel)[1]  # [nnz]
             grads = grads[sel]  # [nnz, 2]
             radii = info["radii"][sel].max(dim=-1).values  # [nnz]
-        # if step >= 100:
-        #     print("[DefaultStrategy] Grad shape ", state["grad2d"].shape)
-        #     print("[DefaultStrategy] gs_ids shape ", gs_ids.shape)
-        #     print("[DefaultStrategy] gs_ids max ", max(gs_ids))
+        # if step >= self.refine_start_iter:
+        #     print("[SDFStrategy] Grad shape ", state["grad2d"].shape)
+        #     print("[SDFStrategy] gs_ids shape ", gs_ids.shape)
+        #     print("[SDFStrategy] gs_ids max ", max(gs_ids))
         #     missing_ids = gs_ids[gs_ids >= state["grad2d"].shape[0]]
-        #     print(f"[DefaultStrategy] Missing ids shape ",  missing_ids.shape[0])
-        #     print(f"[DefaultStrategy] Missing ids ",  missing_ids)
+        #     print(f"[SDFStrategy] Missing ids shape ",  missing_ids.shape[0])
+        #     print(f"[SDFStrategy] Missing ids ",  missing_ids)
         #     valid_ids = gs_ids[gs_ids < state["grad2d"].shape[0]]
-        #     print(f"[DefaultStrategy] Valid ids shape ",  valid_ids.shape[0])
-        #     print(f"[DefaultStrategy] Valid ids max ",  max(valid_ids))
+        #     print(f"[SDFStrategy] Valid ids shape ",  valid_ids.shape[0])
+        #     print(f"[SDFStrategy] Valid ids max ",  max(valid_ids))
         valid_mask = gs_ids < state["grad2d"].shape[0]
         gs_ids = gs_ids[valid_mask]
         #grads = grads[valid_mask]

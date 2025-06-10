@@ -71,13 +71,16 @@ def _update_param_with_optimizer(
         param = params[name]
         new_param = param_fn(name, param)
         params[name] = new_param
-        if name not in optimizers:
-            assert not param.requires_grad, (
-                f"Optimizer for {name} is not found, but the parameter is trainable."
-                f"Got requires_grad={param.requires_grad}"
-            )
-            continue
-        optimizer = optimizers[name]
+        if isinstance(optimizers, dict):
+            if name not in optimizers:
+                assert not param.requires_grad, (
+                    f"Optimizer for {name} is not found, but the parameter is trainable."
+                    f"Got requires_grad={param.requires_grad}"
+                )
+                continue
+            optimizer = optimizers[name]
+        else:
+            optimizer = optimizers
         for i in range(len(optimizer.param_groups)):
             param_state = optimizer.state[param]
             del optimizer.state[param]
