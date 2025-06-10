@@ -81,14 +81,24 @@ def _update_param_with_optimizer(
             optimizer = optimizers[name]
         else:
             optimizer = optimizers
-        for i in range(len(optimizer.param_groups)):
-            param_state = optimizer.state[param]
-            del optimizer.state[param]
-            for key in param_state.keys():
+        # for i in range(len(optimizer.param_groups)):
+        #     param_state = optimizer.state[param]
+        #     del optimizer.state[param]
+        #     for key in param_state.keys():
+        #         if key != "step":
+        #             v = param_state[key]
+        #             param_state[key] = optimizer_fn(key, v)
+        #     optimizer.param_groups[i]["params"] = [new_param]
+        #     optimizer.state[new_param] = param_state
+        for group in optimizer.param_groups:
+            group["params"] = [
+                new_param if p is param else p for p in group["params"]
+            ]
+        if param in optimizer.state:
+            param_state = optimizer.state.pop(param)
+            for key in list(param_state.keys()):
                 if key != "step":
-                    v = param_state[key]
-                    param_state[key] = optimizer_fn(key, v)
-            optimizer.param_groups[i]["params"] = [new_param]
+                    param_state[key] = optimizer_fn(key, param_state[key])
             optimizer.state[new_param] = param_state
 
 
