@@ -167,9 +167,9 @@ class SDFStrategy(Strategy):
 
         self._update_state(params, state, info, step, packed=packed)
 
-        for name, optimizer in optimizers.items():
-          optim_cls = type(optimizer)
-          optimizers[name] = optim_cls(neuRISRunner.parameters(), lr=optimizer.defaults['lr'])
+        # for name, optimizer in optimizers.items():
+        #   optim_cls = type(optimizer)
+        #   optimizers[name] = optim_cls(neuRISRunner.parameters(), lr=optimizer.defaults['lr'])
 
         if (
             step > self.refine_start_iter
