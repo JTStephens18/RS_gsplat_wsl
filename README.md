@@ -21,27 +21,101 @@ gsplat is an open-source library for CUDA accelerated rasterization of gaussians
 
 ## Installation
 
-**Dependence**: Please install [Pytorch](https://pytorch.org/get-started/locally/) first.
+# GSplat WSL2 CUDA Setup Guide
 
-The easiest way is to install from PyPI. In this way it will build the CUDA code **on the first run** (JIT).
+This guide will help you set up a development environment for the `gsplat` repository inside **WSL2 with CUDA support**.
+
+## ✅ Prerequisites
+
+1. **WSL2 Installed**: Ensure WSL2 is installed with a distro like **Ubuntu 22.04**.
+2. **NVIDIA GPU with CUDA Support on Windows**: You must have a compatible NVIDIA GPU and CUDA drivers installed on **Windows**.
+3. **CUDA for WSL**: Follow NVIDIA's guide to install CUDA in WSL.
+4. **Anaconda/Miniconda** *(Optional but Recommended)*: Conda makes it easier to manage isolated Python environments.
+
+## ⚙️ Installation Instructions (WSL2 Developer Mode)
+
+### 🔹 Step 1: Install CUDA Toolkit in WSL
+
+Follow NVIDIA's instructions to install the WSL-compatible CUDA toolkit:
 
 ```bash
-pip install gsplat
+# Add NVIDIA's package repositories
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
+sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
+
+# Add the NVIDIA CUDA repository key
+sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/3bf863cc.pub
+
+# Add the repository to your sources list
+sudo add-apt-repository 'deb https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/ /'
+
+# Update and install
+sudo apt update
+sudo apt install -y cuda
 ```
 
-Alternatively you can install gsplat from source. In this way it will build the CUDA code during installation.
+**Add CUDA to your PATH** by appending the following to your `~/.bashrc`:
 
 ```bash
-pip install git+https://github.com/nerfstudio-project/gsplat.git
+export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 ```
 
-We also provide [pre-compiled wheels](https://docs.gsplat.studio/whl) for both linux and windows on certain python-torch-CUDA combinations (please check first which versions are supported). Note this way you would have to manually install [gsplat's dependencies](https://github.com/nerfstudio-project/gsplat/blob/6022cf45a19ee307803aaf1f19d407befad2a033/setup.py#L115). For example, to install gsplat for pytorch 2.0 and cuda 11.8 you can run
-```
-pip install ninja numpy jaxtyping rich
-pip install gsplat --index-url https://docs.gsplat.studio/whl/pt20cu118
+Apply changes:
+
+```bash
+source ~/.bashrc
 ```
 
-To build gsplat from source on Windows, please check [this instruction](docs/INSTALL_WIN.md).
+**Verify Installation:**
+
+```bash
+nvcc --version
+```
+
+### 🔹 Step 2: Create a Conda Environment (Recommended)
+
+```bash
+conda create -n gsplat python=3.10 -y
+conda activate gsplat
+```
+
+### 🔹 Step 3: Install PyTorch with CUDA Support
+
+Install PyTorch matching your CUDA version (e.g., CUDA 12.6):
+
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+```
+
+### 🔹 Step 4: Install Build Tools & Dependencies
+
+```bash
+sudo apt update
+sudo apt install build-essential ninja-build libglm-dev
+```
+
+### 🔹 Step 5: Clone the Repository
+
+```bash
+git clone --recursive https://github.com/RescueSight/Indoor-GS-Pipeline.git
+cd Indoor-GS-Pipeline
+```
+
+### 🔹 Step 6: Install in Editable (Developer) Mode
+
+```bash
+pip install -e .
+```
+
+⚠️ This will build CUDA components during installation. This is expected and required for development.
+
+### 🔹 Step 7: Install Example Dependencies
+
+```bash
+cd examples
+pip install -r requirements.txt
+```
 
 ## Evaluation
 
