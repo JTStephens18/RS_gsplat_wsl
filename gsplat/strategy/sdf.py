@@ -232,7 +232,6 @@ class SDFStrategy(Strategy):
         n_gaussian = len(list(params.values())[0])
 
         if state["grad2d"] is None:
-            print("[SDFStrategy] None triggered")
             state["grad2d"] = torch.zeros(n_gaussian, device=grads.device)
         if state["count"] is None:
             state["count"] = torch.zeros(n_gaussian, device=grads.device)

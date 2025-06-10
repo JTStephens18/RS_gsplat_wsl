@@ -578,10 +578,9 @@ class Runner:
 
         #============================ SDF Init ========================================
 
-        neuRISRunner = NeuRISRunner("../NeuRIS/confs/neuris.conf", "scene0625_00", "train", "", False, -1, cfg)
-        print("NeuRISRunner initialized optimizer:", neuRISRunner.optimizer.state_dict())
+        neuRISRunner = NeuRISRunner("../NeuRIS/confs/neuris.conf", f'{scene_name}', "train", "", False, -1, cfg)
 
-        neuRISRunner.writer = SummaryWriter(log_dir="C:/Users/JTStephens/Downloads/replica/replica/test/office_0_1/runner")
+        neuRISRunner.writer = SummaryWriter(log_dir="../datasets/office_0_1/runner")
         neuRISRunner.update_learning_rate()
         neuRISRunner.update_iter_step()
         res_step = neuRISRunner.end_iter - neuRISRunner.iter_step

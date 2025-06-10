@@ -201,8 +201,6 @@ class Runner:
         # self.conf['dataset']['data_dir']  = os.path.join(self.conf['general.data_dir'] , self.dataset_type, self.scan_name)
         #self.conf['dataset']['data_dir']  = os.path.join(self.conf['general.data_dir'], self.scan_name)
         self.conf['dataset']['data_dir']  = self.conf['general.data_dir']
-        print("[EXP Runner] dataset data dir ", self.conf['dataset']['data_dir'])
-        print("[EXP Runner] dataset ", self.conf['dataset'])
         self.dataset = Dataset(self.conf['dataset'], self.args)
 
     def build_model(self):
