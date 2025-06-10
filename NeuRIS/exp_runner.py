@@ -900,12 +900,14 @@ class Runner:
     def save_checkpoint(self):
         checkpoint = None
         if self.model_type == 'neus':
+            optimizer_state = torch.optim.Optimizer.state_dict(self.optimizer)
             checkpoint = {
                 'nerf': self.nerf_outside.state_dict(),
                 'sdf_network_fine': self.sdf_network_fine.state_dict(),
                 'variance_network_fine': self.variance_network_fine.state_dict(),
                 'color_network_fine': self.color_network_fine.state_dict(),
-                'optimizer': self.optimizer.state_dict(),
+                #'optimizer': self.optimizer.state_dict(),
+                'optimizer': optimizer_state,
                 'iter_step': self.iter_step,
             }
 
