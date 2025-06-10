@@ -98,7 +98,7 @@ class Dataset:
             self.world_mats_np.append(create_camera_to_world_matrix(img[1].qvec, img[1].tvec))
 
         images_lis = None
-        for ext in ['.png', '.JPG']:
+        for ext in ['.png', '.jpg']:
             print("[Dataset]: Images path ", os.path.join(self.data_dir, f'images/'))
             images_lis = sorted(glob(os.path.join(self.data_dir, f'images/*{ext}')))
             self.vec_stem_files = get_files_stem(f'{self.data_dir}/images', ext_file=ext) # self.vec_stem_files 图像名 ['0000', '0006' ...]
