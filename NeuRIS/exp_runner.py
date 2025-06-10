@@ -90,8 +90,6 @@ class Runner:
                                      self.args.exp_name,
                                      self.args.exp_name + ".conf")
         dir_path = os.path.dirname(new_conf_path)
-        print("[EXP Runner] new conf path ", new_conf_path)
-        print("[EXP Runner] dir path ", dir_path)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path, exist_ok=True)
         with open(new_conf_path, 'w') as f:
@@ -203,6 +201,8 @@ class Runner:
         # self.conf['dataset']['data_dir']  = os.path.join(self.conf['general.data_dir'] , self.dataset_type, self.scan_name)
         #self.conf['dataset']['data_dir']  = os.path.join(self.conf['general.data_dir'], self.scan_name)
         self.conf['dataset']['data_dir']  = self.conf['general.data_dir']
+        print("[EXP Runner] dataset data dir ", self.conf['dataset']['data_dir'])
+        print("[EXP Runner] dataset ", self.conf['dataset'])
         self.dataset = Dataset(self.conf['dataset'], self.args)
 
     def build_model(self):
