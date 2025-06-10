@@ -90,6 +90,8 @@ class Runner:
                                      self.args.exp_name,
                                      self.args.exp_name + ".conf")
         dir_path = os.path.dirname(new_conf_path)
+        print("[EXP Runner] new conf path ", new_conf_path)
+        print("[EXP Runner] dir path ", dir_path)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path, exist_ok=True)
         with open(new_conf_path, 'w') as f:
