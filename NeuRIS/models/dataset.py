@@ -99,7 +99,7 @@ class Dataset:
 
         images_lis = None
         for ext in ['.png', '.JPG']:
-            images_lis = sorted(glob(os.path.join(self.data_dir, f'images/*{ext}')))
+            images_lis = sorted(glob(os.path.join(self.data_dir, f'/images/*{ext}')))
             self.vec_stem_files = get_files_stem(f'{self.data_dir}/images', ext_file=ext) # self.vec_stem_files 图像名 ['0000', '0006' ...]
             if len(images_lis) > 0:
                 break
