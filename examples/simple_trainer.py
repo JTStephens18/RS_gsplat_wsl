@@ -323,6 +323,7 @@ def create_splats_with_optimizers(
         )
         for name, _, lr in params
     }
+    print("Created optimizers ", optimizers)
     return splats, optimizers
 
 
@@ -998,7 +999,7 @@ class Runner:
                     packed=cfg.packed,
                 )
 
-                print("Default optimizer post_backward", self.optimizers.state_dict()['param_groups'])
+                print("Default optimizer post_backward", self.optimizers.optimizer_state)
             elif isinstance(self.cfg.strategy, MCMCStrategy):
                 self.cfg.strategy.step_post_backward(
                     params=self.splats,
