@@ -898,9 +898,9 @@ class Runner:
     def save_checkpoint(self):
         checkpoint = None
         if self.model_type == 'neus':
-            for k in self.optimizer.state:
-                if id(k) not in [id(p) for group in self.optimizer.param_groups for p in group['params']]:
-                    print("Missing tensor in param_groups:", k)
+            # for k in self.optimizer.state:
+            #     if id(k) not in [id(p) for group in self.optimizer.param_groups for p in group['params']]:
+            #         print("Missing tensor in param_groups:", k)
                     
             optimizer_state = torch.optim.Optimizer.state_dict(self.optimizer)
 

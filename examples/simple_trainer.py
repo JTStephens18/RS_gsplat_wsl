@@ -958,6 +958,8 @@ class Runner:
 
             #print("NeuRIS Optimizer ", neuRISRunner.optimizer.state_dict())
 
+            print("NeuRIS Optimizer pre post_backward ", neuRISRunner.optimizer.state_dict())
+
             # =================== SDF D&P ===========================
             if isinstance(self.cfg.sdfStrategy, SDFStrategy):
                 self.cfg.sdfStrategy.step_post_backward(
@@ -969,6 +971,14 @@ class Runner:
                     packed=False,
                     #NeuRISRunner=neuRISRunner,
                 )
+
+            print("NeuRIS Optimizer post_backward ", neuRISRunner.optimizer.state_dict())
+
+            for k in neuRISRunner.optimizer.state:
+                if id(k) not in [id(p) for group in neuRISRunner.optimizer.param_groups for p in group['params']]:
+                    print("Missing tensor in param_groups:", k)
+
+
             #print("Optimizer test ", neuRISRunner.optimizer.param_groups[0])
             #print("NeuRIS Optimizer post_backward ", neuRISRunner.optimizer.state_dict())
 
