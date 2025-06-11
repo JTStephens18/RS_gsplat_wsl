@@ -75,6 +75,8 @@ class Parser:
             colmap_dir
         ), f"COLMAP directory {colmap_dir} does not exist."
 
+        print("[Parser] Loading COLMAP data from", colmap_dir)
+
         manager = SceneManager(colmap_dir)
         manager.load_cameras()
         manager.load_images()
