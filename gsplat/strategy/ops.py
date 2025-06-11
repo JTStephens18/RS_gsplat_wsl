@@ -67,8 +67,6 @@ def _update_param_with_optimizer(
         # If names is not provided, update all parameters
         names = list(params.keys())
 
-    print("[OPS]: Updating parameters and optimizers with custom functions.")
-
     for name in names:
         param = params[name]
         new_param = param_fn(name, param)
