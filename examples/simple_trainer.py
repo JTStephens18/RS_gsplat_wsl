@@ -1001,7 +1001,7 @@ class Runner:
                     packed=cfg.packed,
                 )
 
-                print("Default optimizer post_backward ", self.optimizers['means'].state_dict()['param_groups']e)
+                print("Default optimizer post_backward ", self.optimizers['means'].state_dict()['param_groups'])
             elif isinstance(self.cfg.strategy, MCMCStrategy):
                 self.cfg.strategy.step_post_backward(
                     params=self.splats,
