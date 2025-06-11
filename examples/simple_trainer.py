@@ -958,7 +958,7 @@ class Runner:
 
             #print("NeuRIS Optimizer ", neuRISRunner.optimizer.state_dict())
 
-            print("NeuRIS Optimizer pre post_backward ", neuRISRunner.optimizer.state_dict()['param_groups'])
+            print("NeuRIS Optimizer pre_backward ", neuRISRunner.optimizer.state_dict()['param_groups'])
 
             # =================== SDF D&P ===========================
             if isinstance(self.cfg.sdfStrategy, SDFStrategy):
@@ -986,6 +986,9 @@ class Runner:
 
             # Run post-backward steps after backward and optimizer
             if isinstance(self.cfg.strategy, DefaultStrategy):
+
+                print("Default optimizer pre_backward", self.optimizers.state_dict()['param_groups'])
+
                 self.cfg.strategy.step_post_backward(
                     params=self.splats,
                     optimizers=self.optimizers,
@@ -994,6 +997,8 @@ class Runner:
                     info=info,
                     packed=cfg.packed,
                 )
+
+                print("Default optimizer post_backward", self.optimizers.state_dict()['param_groups'])
             elif isinstance(self.cfg.strategy, MCMCStrategy):
                 self.cfg.strategy.step_post_backward(
                     params=self.splats,

@@ -67,6 +67,8 @@ def _update_param_with_optimizer(
         # If names is not provided, update all parameters
         names = list(params.keys())
 
+    print("[OPS]: Updating parameters and optimizers with custom functions.")
+
     for name in names:
         param = params[name]
         new_param = param_fn(name, param)
@@ -90,31 +92,6 @@ def _update_param_with_optimizer(
                     param_state[key] = optimizer_fn(key, v)
             optimizer.param_groups[i]["params"] = [new_param]
             optimizer.state[new_param] = param_state
-# Handle optimizer state update more carefully
-        # if param in optimizer.state:
-        #     # Get the current state
-        #     param_state = optimizer.state[param].copy()
-            
-        #     # Remove old parameter from state
-        #     del optimizer.state[param]
-            
-        #     # Update state values using optimizer_fn
-        #     for key in param_state.keys():
-        #         if key != "step":
-        #             v = param_state[key]
-        #             param_state[key] = optimizer_fn(key, v)
-            
-        #     # Add state for new parameter
-        #     optimizer.state[new_param] = param_state
-        
-        # # Update parameter groups - find the correct group and parameter index
-        # for group in optimizer.param_groups:
-        #     if param in group["params"]:
-        #         # Find the index of the old parameter
-        #         param_idx = group["params"].index(param)
-        #         # Replace with new parameter
-        #         group["params"][param_idx] = new_param
-        #         break
 
 
 @torch.no_grad()
