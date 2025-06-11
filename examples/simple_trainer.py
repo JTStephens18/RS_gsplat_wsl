@@ -958,7 +958,7 @@ class Runner:
 
             #print("NeuRIS Optimizer ", neuRISRunner.optimizer.state_dict())
 
-            print("NeuRIS Optimizer pre post_backward ", neuRISRunner.optimizer.param_groups)
+            print("NeuRIS Optimizer pre post_backward ", neuRISRunner.optimizer.params)
 
             # =================== SDF D&P ===========================
             if isinstance(self.cfg.sdfStrategy, SDFStrategy):
@@ -972,7 +972,7 @@ class Runner:
                     #NeuRISRunner=neuRISRunner,
                 )
 
-            print("NeuRIS Optimizer post_backward ", neuRISRunner.optimizer.param_groups)
+            print("NeuRIS Optimizer post_backward ", neuRISRunner.optimizer.params)
 
             for k in neuRISRunner.optimizer.state:
                 if id(k) not in [id(p) for group in neuRISRunner.optimizer.param_groups for p in group['params']]:
