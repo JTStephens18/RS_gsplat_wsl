@@ -323,7 +323,7 @@ def create_splats_with_optimizers(
         )
         for name, _, lr in params
     }
-    print("Created optimizers ", optimizers)
+    #print("Created optimizers ", optimizers)
     return splats, optimizers
 
 
@@ -582,7 +582,7 @@ class Runner:
 
         neuRISRunner = NeuRISRunner("../NeuRIS/confs/neuris.conf", f'{cfg.scene_name}', "train", "", False, -1, cfg)
 
-        print("Created NeuRISRunner optimizers", neuRISRunner.optimizer)
+        #print("Created NeuRISRunner optimizers", neuRISRunner.optimizer)
 
         neuRISRunner.writer = SummaryWriter(log_dir="../datasets/office_0_1/runner")
         neuRISRunner.update_learning_rate()
@@ -959,9 +959,7 @@ class Runner:
             for scheduler in schedulers:
                 scheduler.step()
 
-            #print("NeuRIS Optimizer ", neuRISRunner.optimizer.state_dict())
-
-            print("NeuRIS Optimizer pre_backward ", neuRISRunner.optimizer.state_dict()['param_groups'])
+            #print("NeuRIS Optimizer pre_backward ", neuRISRunner.optimizer.state_dict()['param_groups'])
 
             # =================== SDF D&P ===========================
             if isinstance(self.cfg.sdfStrategy, SDFStrategy):
@@ -975,7 +973,7 @@ class Runner:
                     #NeuRISRunner=neuRISRunner,
                 )
 
-            print("NeuRIS Optimizer post_backward ", neuRISRunner.optimizer.state_dict()['param_groups'])
+            #print("NeuRIS Optimizer post_backward ", neuRISRunner.optimizer.state_dict()['param_groups'])
 
             for k in neuRISRunner.optimizer.state:
                 if id(k) not in [id(p) for group in neuRISRunner.optimizer.param_groups for p in group['params']]:
@@ -990,7 +988,7 @@ class Runner:
             # Run post-backward steps after backward and optimizer
             if isinstance(self.cfg.strategy, DefaultStrategy):
 
-                print("Default optimizer pre_backward", self.optimizers['means'].state_dict()['param_groups'])
+                #print("Default optimizer pre_backward", self.optimizers['means'].state_dict()['param_groups'])
 
                 self.cfg.strategy.step_post_backward(
                     params=self.splats,
@@ -1001,7 +999,7 @@ class Runner:
                     packed=cfg.packed,
                 )
 
-                print("Default optimizer post_backward ", self.optimizers['means'].state_dict()['param_groups'])
+                #print("Default optimizer post_backward ", self.optimizers['means'].state_dict()['param_groups'])
             elif isinstance(self.cfg.strategy, MCMCStrategy):
                 self.cfg.strategy.step_post_backward(
                     params=self.splats,
