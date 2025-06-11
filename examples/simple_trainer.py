@@ -357,6 +357,7 @@ class Runner:
         self.writer = SummaryWriter(log_dir=f"{cfg.result_dir}/tb")
 
         # Load data: Training data should contain initial points and colors.
+        print("Config data directory ", cfg.data_dir)
         self.parser = Parser(
             data_dir=cfg.data_dir,
             factor=cfg.data_factor,
