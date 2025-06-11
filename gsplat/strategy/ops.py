@@ -93,14 +93,39 @@ def _update_param_with_optimizer(
         #     optimizer.param_groups[i]["params"] = [new_param]
         #     optimizer.state[new_param] = param_state
 
-        if param in optimizer.state:
-            param_state = optimizer.state[param]
-            for key in param_state.keys():
-                if key != "step":
-                    v = param_state[key]
-                    # The optimizer_fn should also perform its update in-place if possible,
-                    # or return a new tensor to be assigned.
-                    param_state[key] = optimizer_fn(key, v)
+        # if param in optimizer.state:
+        #     param_state = optimizer.state[param]
+        #     for key in param_state.keys():
+        #         if key != "step":
+        #             v = param_state[key]
+        #             # The optimizer_fn should also perform its update in-place if possible,
+        #             # or return a new tensor to be assigned.
+        #             param_state[key] = optimizer_fn(key, v)
+
+         # Update all parameter groups that contain this parameter
+        for i, param_group in enumerate(optimizer.param_groups):
+            # Find and update the parameter in this group
+            updated_params = []
+            for j, group_param in enumerate(param_group["params"]):
+                if group_param is param:  # Found the parameter to replace
+                    # Transfer optimizer state if it exists
+                    if param in optimizer.state:
+                        param_state = optimizer.state[param].copy()
+                        # Apply optimizer_fn to state values (except 'step')
+                        for key in param_state.keys():
+                            if key != "step":
+                                v = param_state[key]
+                                param_state[key] = optimizer_fn(key, v)
+                        # Remove old state and add new state
+                        del optimizer.state[param]
+                        optimizer.state[new_param] = param_state
+                    
+                    updated_params.append(new_param)
+                else:
+                    updated_params.append(group_param)
+            
+            # Update the parameter group
+            optimizer.param_groups[i]["params"] = updated_params
 
 
 @torch.no_grad()
