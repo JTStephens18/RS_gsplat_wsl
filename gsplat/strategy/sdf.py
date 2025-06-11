@@ -159,7 +159,7 @@ class SDFStrategy(Strategy):
         step: int,
         info: Dict[str, Any],
         packed: bool = False,
-        neuRISRunner: Any = None,  # Placeholder for neuRISRunner if needed
+        #neuRISRunner: Any = None,  # Placeholder for neuRISRunner if needed
     ):
         """Callback function to be executed after the `loss.backward()` call."""
         if step >= self.refine_stop_iter:

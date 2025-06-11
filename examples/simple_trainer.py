@@ -967,7 +967,7 @@ class Runner:
                     step=step,
                     info=info,
                     packed=False,
-                    NeuRISRunner=neuRISRunner,
+                    #NeuRISRunner=neuRISRunner,
                 )
             #print("Optimizer test ", neuRISRunner.optimizer.param_groups[0])
             #print("NeuRIS Optimizer post_backward ", neuRISRunner.optimizer.state_dict())
