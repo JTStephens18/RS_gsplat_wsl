@@ -267,7 +267,6 @@ class Dataset:
         else:
             logging.info(f'Use adjacent views as neighbors.')
 
-
         self.initialize_patchmatch()
         
         # Gen train_data
@@ -349,7 +348,20 @@ class Dataset:
             self.images_gray.append(img_gray)
 
         # range: (0,255)
+        #print(f"images_gray_np shape: {self.images_gray.shape}, dtype: {self.images_gray.dtype}")
+
         self.images_gray_np = np.array(self.images_gray).astype(np.float32)
+
+        # if self.n_images > 0:
+        #     # Get dimensions from first image
+        #     img_gray_sample = cv.cvtColor(self.images_denoise_np[0].astype(np.uint8), cv.COLOR_BGR2GRAY)
+        #     h, w = img_gray_sample.shape
+        #     self.images_gray_np = np.empty((self.n_images, h, w), dtype=np.float32)
+        
+        # for i in tqdm(range(self.n_images)):
+        #     img_gray = cv.cvtColor(self.images_denoise_np[i].astype(np.uint8), cv.COLOR_BGR2GRAY)
+        #     self.images_gray_np[i] = img_gray.astype(np.float32)
+
         self.images_gray = torch.from_numpy(self.images_gray_np).cuda()
 
         # For cache rendered depths and normals
