@@ -83,15 +83,24 @@ def _update_param_with_optimizer(
             optimizer = optimizers[name]
         else:
             optimizer = optimizers
-        for i in range(len(optimizer.param_groups)):
+        # for i in range(len(optimizer.param_groups)):
+        #     param_state = optimizer.state[param]
+        #     del optimizer.state[param]
+        #     for key in param_state.keys():
+        #         if key != "step":
+        #             v = param_state[key]
+        #             param_state[key] = optimizer_fn(key, v)
+        #     optimizer.param_groups[i]["params"] = [new_param]
+        #     optimizer.state[new_param] = param_state
+
+        if param in optimizer.state:
             param_state = optimizer.state[param]
-            del optimizer.state[param]
             for key in param_state.keys():
                 if key != "step":
                     v = param_state[key]
+                    # The optimizer_fn should also perform its update in-place if possible,
+                    # or return a new tensor to be assigned.
                     param_state[key] = optimizer_fn(key, v)
-            optimizer.param_groups[i]["params"] = [new_param]
-            optimizer.state[new_param] = param_state
 
 
 @torch.no_grad()
