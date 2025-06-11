@@ -582,7 +582,7 @@ class Runner:
 
         neuRISRunner = NeuRISRunner("../NeuRIS/confs/neuris.conf", f'{cfg.scene_name}', "train", "", False, -1, cfg)
 
-        print("Created NeuRISRunner optimizers", neuRISRunner.optimizers)
+        print("Created NeuRISRunner optimizers", neuRISRunner.optimizer)
 
         neuRISRunner.writer = SummaryWriter(log_dir="../datasets/office_0_1/runner")
         neuRISRunner.update_learning_rate()
