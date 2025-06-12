@@ -5,7 +5,7 @@ import torch
 from typing_extensions import Literal
 
 from .base import Strategy
-from .ops import duplicate, remove, reset_opa, split
+from .ops import sdf_duplicate, sdf_remove, reset_opa, sdf_split
 
 
 @dataclass
@@ -308,7 +308,7 @@ class SDFStrategy(Strategy):
 
         # first duplicate
         if n_dupli > 0:
-            duplicate(params=params, optimizers=optimizers, state=state, mask=is_dupli)
+            sdf_duplicate(params=params, optimizers=optimizers, state=state, mask=is_dupli)
 
         # new GSs added by duplication will not be split
         is_split = torch.cat(
@@ -320,7 +320,7 @@ class SDFStrategy(Strategy):
 
         # then split
         if n_split > 0:
-            split(
+            sdf_split(
                 params=params,
                 optimizers=optimizers,
                 state=state,
@@ -355,6 +355,6 @@ class SDFStrategy(Strategy):
 
         n_prune = is_prune.sum().item()
         if n_prune > 0:
-            remove(params=params, optimizers=optimizers, state=state, mask=is_prune)
+            sdf_remove(params=params, optimizers=optimizers, state=state, mask=is_prune)
 
         return n_prune
