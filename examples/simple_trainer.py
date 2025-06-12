@@ -192,9 +192,6 @@ class Config:
     use_fused_bilagrid: bool = False
 
     scene_name: str = "office_0_1"
-    exp_name: str = "runner_office_0_1"
-    exp_dir: str = "../datasets/office_0_1/runner"
-    #data_dir: str = "../datasets/office_0_1/"
     iterations: int = 20000
     is_sdf_norm: bool = True
     gs2sdf_from: int = 5000
@@ -209,6 +206,15 @@ class Config:
     no_sam_iter: int = 1000
     sam_add_len: float = 1.0
     geo_interval: int = 100
+    # ======================== SDF conf config ========================
+
+    exp_name: str = "runner_office_0_1"
+    exp_dir: str = "../datasets/office_0_1/runner"
+    #data_dir: str = "../datasets/office_0_1/"
+
+    k: int = 7
+    kk: int = 0
+    min_sam_dis: float = 0.2
 
 
     
