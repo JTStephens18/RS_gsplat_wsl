@@ -790,6 +790,8 @@ class Runner:
 
             loss.backward()
 
+            torch.cuda.empty_cache()
+
             #================== SDF Loss ============================
 
             iter_i = step
