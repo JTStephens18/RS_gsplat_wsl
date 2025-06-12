@@ -993,6 +993,7 @@ class Runner:
                     step=step,
                     info=info,
                     packed=False,
+                    sdfval = lambda pts: neuRISRunner.sdf_network_fine.sdf(pts)[:,0]
                     #NeuRISRunner=neuRISRunner,
                 )
 
