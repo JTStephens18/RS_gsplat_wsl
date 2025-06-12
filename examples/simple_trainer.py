@@ -788,9 +788,9 @@ class Runner:
                     + cfg.scale_reg * torch.abs(torch.exp(self.splats["scales"])).mean()
                 )
 
-            loss.backward()
+            #loss.backward()
 
-            torch.cuda.empty_cache()
+            #torch.cuda.empty_cache()
 
             #================== SDF Loss ============================
 
@@ -820,7 +820,12 @@ class Runner:
             sdf_loss, logs_loss, mask_keep_gt_normal = neuRISRunner.loss_neus(input_model, render_out, neuRISRunner.sdf_network_fine, patchmatch_out)
             logs_summary.update(logs_loss)
 
-            sdf_loss.backward()
+            #sdf_loss.backward()
+
+            loss += sdf_loss
+            loss.backward()
+
+            torch.cuda.empty_cache()
 
             #========================================================
 
