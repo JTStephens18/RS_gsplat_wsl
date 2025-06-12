@@ -212,7 +212,7 @@ class SDFStrategy(Strategy):
                 min_opacity=min_opacity,
                 extent=extent,
                 max_screen_size=max_screen_size,
-                sdf_val=sdf_val,  # Use the gaussian function defined above
+                sdf_val=sdfval,  # Use the gaussian function defined above
             )
 
             if self.verbose:
