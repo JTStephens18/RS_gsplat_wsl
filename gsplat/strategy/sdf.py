@@ -216,14 +216,14 @@ class SDFStrategy(Strategy):
             )
 
             if self.verbose:
-            print(
-                f"Step {step}: SDF: {n_dupli} GSs duplicated, SDF: {n_split} GSs split. "
-                f"Now having {len(params['means'])} GSs."
-            )
-            print(
-                f"Step {step}: SDF: {n_prune} GSs pruned. "
-                f"Now having {len(params['means'])} GSs."
-            )
+                print(
+                    f"Step {step}: SDF: {n_dupli} GSs duplicated, SDF: {n_split} GSs split. "
+                    f"Now having {len(params['means'])} GSs."
+                )
+                print(
+                    f"Step {step}: SDF: {n_prune} GSs pruned. "
+                    f"Now having {len(params['means'])} GSs."
+                )
 
             # reset running stats
             state["grad2d"].zero_()
