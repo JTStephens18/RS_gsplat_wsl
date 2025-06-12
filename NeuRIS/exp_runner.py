@@ -206,6 +206,7 @@ class Runner:
     def build_model(self):
         # Networks
         params_to_train = []
+        print("[Build Model] Model type: ", self.model_type)
         if self.model_type == 'neus':
             self.nerf_outside = NeRF(**self.conf['model.tiny_nerf']).to(self.device)
             self.sdf_network_fine = SDFNetwork(**self.conf['model.sdf_network']).to(self.device) # 返回梯度？
@@ -276,12 +277,12 @@ class Runner:
             #scene, view_cams, gaussians, pipe, background, gs2sdf_from = gs_render_conf
             camtoworld, gs2sdf_from = gs_render_conf
             
-            # if self.iter_step < gs2sdf_from or self.iter_step % 3000 < self.args.no_sam_iter: # 清空opacity的轮次不要过多指导
-            #     near, far = torch.zeros(batch_size, 1).to(self.device), self.sample_range_indoor * torch.ones(batch_size, 1).to(self.device)
-            # else:
-            gs_img_idx = self.dataset.vec_stem_files[idx_img]
-            viewpoint_cam = None
-            viewpoint_cam = camtoworld
+            if self.iter_step < gs2sdf_from or self.iter_step % 3000 < self.args.no_sam_iter: # 清空opacity的轮次不要过多指导
+                near, far = torch.zeros(batch_size, 1).to(self.device), self.sample_range_indoor * torch.ones(batch_size, 1).to(self.device)
+            else:
+                gs_img_idx = self.dataset.vec_stem_files[idx_img]
+                viewpoint_cam = None
+                viewpoint_cam = camtoworld
             # for camera in camtoworld:
             #     if camera.image_name == gs_img_idx:
                     # viewpoint_cam = camera
@@ -296,119 +297,119 @@ class Runner:
             # 实际上形参已经有rays_o, rays_d
             # img_idx 计算gs_depth然后转换到世界坐标 射线查询深度 射线查询sdf表面所在位置 根据差值计算判据 规定采样near far 
             
-            #gs_depth = render_gs_depth(viewpoint_cam, gaussians, pipe, background, return_depth=True)
-            gs_depth = depths[0, :, :, 0]
-            # viewpoint_camera负责对应 有c2w(Rt) 和内参 K 可以将深度信息映射到世界坐标系
-            # K = self.dataset.intrinsics_all[idx_img]
-            c2w = self.dataset.pose_all[idx_img]
-            w2c = torch.linalg.inv(c2w)
+                #gs_depth = render_gs_depth(viewpoint_cam, gaussians, pipe, background, return_depth=True)
+                gs_depth = depths[0, :, :, 0]
+                # viewpoint_camera负责对应 有c2w(Rt) 和内参 K 可以将深度信息映射到世界坐标系
+                # K = self.dataset.intrinsics_all[idx_img]
+                c2w = self.dataset.pose_all[idx_img]
+                w2c = torch.linalg.inv(c2w)
 
-            # 转换射线到相机坐标
-            rays_o = torch.cat((rays_o, torch.ones_like(rays_o[:, :1])), dim=1) # 添加齐次坐标
-            # rays_o_cam = torch.matmul(w2c, rays_o.T).T
-            rays_o_cam = torch.zeros_like(rays_o)
-            rays_d = torch.cat((rays_d, torch.ones_like(rays_d[:, :1])), dim=1) # 添加齐次坐标
-            rays_d_cam = torch.matmul(w2c, rays_d.T).T
-            rays_o_cam = rays_o_cam[:, :3]
-            rays_d_cam = rays_d_cam[:, :3]
-            rays_o = rays_o[:, :3]
-            rays_d = rays_d[:, :3]
+                # 转换射线到相机坐标
+                rays_o = torch.cat((rays_o, torch.ones_like(rays_o[:, :1])), dim=1) # 添加齐次坐标
+                # rays_o_cam = torch.matmul(w2c, rays_o.T).T
+                rays_o_cam = torch.zeros_like(rays_o)
+                rays_d = torch.cat((rays_d, torch.ones_like(rays_d[:, :1])), dim=1) # 添加齐次坐标
+                rays_d_cam = torch.matmul(w2c, rays_d.T).T
+                rays_o_cam = rays_o_cam[:, :3]
+                rays_d_cam = rays_d_cam[:, :3]
+                rays_o = rays_o[:, :3]
+                rays_d = rays_d[:, :3]
 
-            rays_d_cam = F.normalize(rays_d_cam, dim=1) # 方向向量要做归一化！！！！！！
+                rays_d_cam = F.normalize(rays_d_cam, dim=1) # 方向向量要做归一化！！！！！！
 
-            z_axis = torch.tensor([0.0, 0.0, 1.0]).to(self.device)
-            cosine_d_cam = torch.sum(rays_d_cam * z_axis, dim=1) / (torch.norm(rays_d_cam, dim=1) * torch.norm(z_axis)) # torch.Size([512])
+                z_axis = torch.tensor([0.0, 0.0, 1.0]).to(self.device)
+                cosine_d_cam = torch.sum(rays_d_cam * z_axis, dim=1) / (torch.norm(rays_d_cam, dim=1) * torch.norm(z_axis)) # torch.Size([512])
 
 
-            # 计算射线与世界坐标系下深度表面的交点 pts = ray_o + D·ray_v与距离D o-------->|
-            ray_len = torch.zeros(rays_o.shape[0]).to(self.device)
-            cam_depth = torch.zeros(rays_o.shape[0]).to(self.device)
-            intersection_pts = torch.zeros_like(rays_o)
+                # 计算射线与世界坐标系下深度表面的交点 pts = ray_o + D·ray_v与距离D o-------->|
+                ray_len = torch.zeros(rays_o.shape[0]).to(self.device)
+                cam_depth = torch.zeros(rays_o.shape[0]).to(self.device)
+                intersection_pts = torch.zeros_like(rays_o)
 
-            # print("gs_depth shape", gs_depth.shape)
-            # print("cam depth shape ", cam_depth.shape)
-            # print("Pixels x shape ", pixels_x.shape)
-            # print("Pixels x max ", pixels_x.max().item())
-            #cam_depth = gs_depth[pixels_y, pixels_x]
-            cam_depth = gs_depth [torch.clamp(pixels_y, 0, gs_depth.shape[0]-1), 
-                                  torch.clamp(pixels_x, 0, gs_depth.shape[1]-1)]
-            ray_len = cam_depth / cosine_d_cam
-            intersection_pts = rays_o + ray_len[:, None] * rays_d
-            
-            # s = sdf(pts) k|D-s|作为采样范围
-            with torch.no_grad():
-                s = self.sdf_network_fine.sdf(intersection_pts)[:, 0]
-
-            s /= cosine_d_cam
-            # near = ray_o + (D - k|s|)·ray_v
-            # far = ray_o + (D + k|s|)·ray_v
-
-            near_cam = rays_o_cam + (ray_len.unsqueeze(1) - self.k*torch.abs(s.unsqueeze(1)) ) * rays_d_cam
-            far_cam  = rays_o_cam + (ray_len.unsqueeze(1) + self.k*torch.abs(s.unsqueeze(1)) ) * rays_d_cam
-            near = near_cam[:,-1]
-            far = far_cam[:,-1]
-
-            near /= cosine_d_cam
-            far /= cosine_d_cam
-
-            # 更新k
-            self.update_k(near, far)
-            # # 或许加长far
-            # near -= 0.2
-            # far += 0.2
-
-            # -------------------------------------------------------------------------------------------------
-            near_w = torch.cat((near_cam, torch.ones_like(near_cam[:, :1])), dim=1) # 添加齐次坐标
-            far_w = torch.cat((far_cam, torch.ones_like(far_cam[:, :1])), dim=1) # 添加齐次坐标
-            near_w = torch.matmul(c2w, near_w.T).T
-            far_w  = torch.matmul(c2w, far_w.T).T
-            near_w = near_w[:, :3]
-            far_w = far_w[:, :3]
-
-            sn = self.sdf_network_fine.sdf(near_w)[:, 0] # 307 大于0不正常
-            sf = self.sdf_network_fine.sdf(far_w)[:, 0] # 1024都小于 0 正常
-            # so = self.sdf_network_fine.sdf(rays_o)[:, 0] # 1024 大于0 正常
-            factor = sn * sf
-            if factor.any() >= 0: # 没有正常穿过表面
-                near = torch.where(sn.any() <= 0, near - torch.tensor(self.args.sam_add_len).to(self.device), near) 
-                far = torch.where(sf.any() >= 0, far + torch.tensor(self.args.sam_add_len).to(self.device), far)
-            # -------------------------------------------------------------------------------------------------
-            
-            near = torch.where(near <= 0, torch.tensor(0).to(self.device), near)
-            far = torch.where(far >= 2, torch.tensor(2).to(self.device), far)
-            diff = far - near
-            mask = diff < self.args.min_sam_dis
-            near = torch.where(mask, ray_len - self.args.min_sam_dis/2, near)
-            far = torch.where(mask, ray_len + self.args.min_sam_dis/2, far)
-            mask = (near > ray_len) | (far < ray_len)
-            near = torch.where(mask, torch.tensor(0).to(self.device), near)
-            far = torch.where(mask, torch.tensor(2).to(self.device), far)
-
-            near = near.unsqueeze(1) # 后续计算要求shape (batchsize, 1)
-            far = far.unsqueeze(1)  
-
-            # 如果深度小于阈值保存一个高斯场景
-            # scene.save(self.iter_step -15000)
-
-            # self.sample_info = [near.mean().item(), ray_len.mean().item(), far.mean().item()] # debug信息
-            # 深度异常时候取标准采样
-            if cam_depth.mean() < 0.3: # 这个值待测试
-                    near, far = torch.zeros(batch_size, 1).to(self.device), self.sample_range_indoor * torch.ones(batch_size, 1).to(self.device)
-
-            VIEW_POINTS = True
-            if VIEW_POINTS:
-                if cam_depth.mean() < 0.2:
-                    self.cnt += 1
-                if cam_depth.mean() < 0.1 and self.iter_step % 1000 > 50: # 正常在0.4左右 不正常小一个数量级
-                    scene.show(self.iter_step + 15000)
-                    self.show_samlpe_points(rays_o, rays_d, near, far, intersection_pts, gs_img_idx)
-                    self.show_mesh()
+                # print("gs_depth shape", gs_depth.shape)
+                # print("cam depth shape ", cam_depth.shape)
+                # print("Pixels x shape ", pixels_x.shape)
+                # print("Pixels x max ", pixels_x.max().item())
+                #cam_depth = gs_depth[pixels_y, pixels_x]
+                cam_depth = gs_depth [torch.clamp(pixels_y, 0, gs_depth.shape[0]-1), 
+                                    torch.clamp(pixels_x, 0, gs_depth.shape[1]-1)]
+                ray_len = cam_depth / cosine_d_cam
+                intersection_pts = rays_o + ray_len[:, None] * rays_d
                 
-                if self.iter_step % 10000 == 0:
-                    self.show_samlpe_points(rays_o, rays_d, near, far, intersection_pts, gs_img_idx)
-                    # self.show_mesh()
-                # print("!")
-            self.sample_info = [near.mean().item(), ray_len.mean().item(), far.mean().item(), ((far-near)>1.9).sum()] # debug信息 (far-near).max().item() (far-near).min().item()
+                # s = sdf(pts) k|D-s|作为采样范围
+                with torch.no_grad():
+                    s = self.sdf_network_fine.sdf(intersection_pts)[:, 0]
+
+                s /= cosine_d_cam
+                # near = ray_o + (D - k|s|)·ray_v
+                # far = ray_o + (D + k|s|)·ray_v
+
+                near_cam = rays_o_cam + (ray_len.unsqueeze(1) - self.k*torch.abs(s.unsqueeze(1)) ) * rays_d_cam
+                far_cam  = rays_o_cam + (ray_len.unsqueeze(1) + self.k*torch.abs(s.unsqueeze(1)) ) * rays_d_cam
+                near = near_cam[:,-1]
+                far = far_cam[:,-1]
+
+                near /= cosine_d_cam
+                far /= cosine_d_cam
+
+                # 更新k
+                self.update_k(near, far)
+                # # 或许加长far
+                # near -= 0.2
+                # far += 0.2
+
+                # -------------------------------------------------------------------------------------------------
+                near_w = torch.cat((near_cam, torch.ones_like(near_cam[:, :1])), dim=1) # 添加齐次坐标
+                far_w = torch.cat((far_cam, torch.ones_like(far_cam[:, :1])), dim=1) # 添加齐次坐标
+                near_w = torch.matmul(c2w, near_w.T).T
+                far_w  = torch.matmul(c2w, far_w.T).T
+                near_w = near_w[:, :3]
+                far_w = far_w[:, :3]
+
+                sn = self.sdf_network_fine.sdf(near_w)[:, 0] # 307 大于0不正常
+                sf = self.sdf_network_fine.sdf(far_w)[:, 0] # 1024都小于 0 正常
+                # so = self.sdf_network_fine.sdf(rays_o)[:, 0] # 1024 大于0 正常
+                factor = sn * sf
+                if factor.any() >= 0: # 没有正常穿过表面
+                    near = torch.where(sn.any() <= 0, near - torch.tensor(self.args.sam_add_len).to(self.device), near) 
+                    far = torch.where(sf.any() >= 0, far + torch.tensor(self.args.sam_add_len).to(self.device), far)
+                # -------------------------------------------------------------------------------------------------
+                
+                near = torch.where(near <= 0, torch.tensor(0).to(self.device), near)
+                far = torch.where(far >= 2, torch.tensor(2).to(self.device), far)
+                diff = far - near
+                mask = diff < self.args.min_sam_dis
+                near = torch.where(mask, ray_len - self.args.min_sam_dis/2, near)
+                far = torch.where(mask, ray_len + self.args.min_sam_dis/2, far)
+                mask = (near > ray_len) | (far < ray_len)
+                near = torch.where(mask, torch.tensor(0).to(self.device), near)
+                far = torch.where(mask, torch.tensor(2).to(self.device), far)
+
+                near = near.unsqueeze(1) # 后续计算要求shape (batchsize, 1)
+                far = far.unsqueeze(1)  
+
+                # 如果深度小于阈值保存一个高斯场景
+                # scene.save(self.iter_step -15000)
+
+                # self.sample_info = [near.mean().item(), ray_len.mean().item(), far.mean().item()] # debug信息
+                # 深度异常时候取标准采样
+                if cam_depth.mean() < 0.3: # 这个值待测试
+                        near, far = torch.zeros(batch_size, 1).to(self.device), self.sample_range_indoor * torch.ones(batch_size, 1).to(self.device)
+
+                VIEW_POINTS = True
+                if VIEW_POINTS:
+                    if cam_depth.mean() < 0.2:
+                        self.cnt += 1
+                    if cam_depth.mean() < 0.1 and self.iter_step % 1000 > 50: # 正常在0.4左右 不正常小一个数量级
+                        scene.show(self.iter_step + 15000)
+                        self.show_samlpe_points(rays_o, rays_d, near, far, intersection_pts, gs_img_idx)
+                        self.show_mesh()
+                    
+                    if self.iter_step % 10000 == 0:
+                        self.show_samlpe_points(rays_o, rays_d, near, far, intersection_pts, gs_img_idx)
+                        # self.show_mesh()
+                    # print("!")
+                self.sample_info = [near.mean().item(), ray_len.mean().item(), far.mean().item(), ((far-near)>1.9).sum()] # debug信息 (far-near).max().item() (far-near).min().item()
                 
         else:
             NotImplementedError

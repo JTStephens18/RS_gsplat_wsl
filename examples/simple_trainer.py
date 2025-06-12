@@ -211,10 +211,10 @@ class Config:
     # ======================== SDF Model ========================
 
     mode: str = 'train'
-    mdoel_type: str = ''
+    model_type: str = ''
     threshold: float = 0.0
     is_continue: bool = False
-    
+
 
     # ======================== SDF conf config ========================
 
