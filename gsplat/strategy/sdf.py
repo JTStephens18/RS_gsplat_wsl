@@ -95,6 +95,7 @@ class SDFStrategy(Strategy):
     verbose: bool = False
     key_for_gradient: Literal["means2d", "gradient_2dgs"] = "means2d"
     geo_interval: int = 100
+    percent_dense: float = 0.01
 
     def initialize_state(self, scene_scale: float = 1.0) -> Dict[str, Any]:
         """Initialize and return the running state for this strategy.
