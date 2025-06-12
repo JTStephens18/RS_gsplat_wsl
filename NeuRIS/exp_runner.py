@@ -395,7 +395,7 @@ class Runner:
             if cam_depth.mean() < 0.3: # 这个值待测试
                     near, far = torch.zeros(batch_size, 1).to(self.device), self.sample_range_indoor * torch.ones(batch_size, 1).to(self.device)
 
-            VIEW_POINTS = False
+            VIEW_POINTS = True
             if VIEW_POINTS:
                 if cam_depth.mean() < 0.2:
                     self.cnt += 1

@@ -191,6 +191,7 @@ class Config:
     # Whether use fused-bilateral grid
     use_fused_bilagrid: bool = False
 
+# ====== SDF Args ======
     scene_name: str = "office_0_1"
     iterations: int = 20000
     is_sdf_norm: bool = True
@@ -206,6 +207,15 @@ class Config:
     no_sam_iter: int = 1000
     sam_add_len: float = 1.0
     geo_interval: int = 100
+
+    # ======================== SDF Model ========================
+
+    mode: str = 'train'
+    mdoel_type: str = ''
+    threshold: float = 0.0
+    is_continue: bool = False
+    
+
     # ======================== SDF conf config ========================
 
     exp_name: str = "runner_office_0_1"
@@ -593,7 +603,7 @@ class Runner:
         neuRISRunner.writer = SummaryWriter(log_dir="../datasets/office_0_1/runner")
         neuRISRunner.update_learning_rate()
         neuRISRunner.update_iter_step()
-        res_step = neuRISRunner.end_iter - neuRISRunner.iter_step
+        #res_step = neuRISRunner.end_iter - neuRISRunner.iter_step
 
         if neuRISRunner.dataset.cache_all_data:
             neuRISRunner.dataset.shuffle() 
@@ -788,9 +798,9 @@ class Runner:
                     + cfg.scale_reg * torch.abs(torch.exp(self.splats["scales"])).mean()
                 )
 
-            #loss.backward()
+            loss.backward()
 
-            #torch.cuda.empty_cache()
+            torch.cuda.empty_cache()
 
             #================== SDF Loss ============================
 
@@ -820,10 +830,10 @@ class Runner:
             sdf_loss, logs_loss, mask_keep_gt_normal = neuRISRunner.loss_neus(input_model, render_out, neuRISRunner.sdf_network_fine, patchmatch_out)
             logs_summary.update(logs_loss)
 
-            #sdf_loss.backward()
+            sdf_loss.backward()
 
-            loss += sdf_loss
-            loss.backward()
+            # loss += sdf_loss
+            # loss.backward()
 
             torch.cuda.empty_cache()
 
