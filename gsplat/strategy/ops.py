@@ -462,6 +462,67 @@ def reset_opa(
 
 
 @torch.no_grad()
+def sdf_reset_opa(
+    params: Union[Dict[str, torch.nn.Parameter], torch.nn.ParameterDict],
+    optimizers: Dict[str, torch.optim.Optimizer],
+    state: Dict[str, Tensor],
+    value: float,
+):
+    """Inplace reset the opacities to the given post-sigmoid value.
+
+    Args:
+        params: A dictionary of parameters.
+        optimizers: A dictionary of optimizers, each corresponding to a parameter.
+        value: The value to reset the opacities
+    """
+
+    def param_fn(name: str, p: Tensor) -> Tensor:
+        if name == "opacities":
+            opacities = torch.clamp(p, max=torch.logit(torch.tensor(value)).item())
+            return torch.nn.Parameter(opacities, requires_grad=p.requires_grad)
+        else:
+            raise ValueError(f"Unexpected parameter name: {name}")
+
+    def optimizer_fn(key: str, v: Tensor) -> Tensor:
+        return torch.zeros_like(v)
+
+    # update the parameters and the state in the optimizers
+    sdf_update_param_with_optimizer(
+        param_fn, optimizer_fn, params, optimizers, names=["opacities"]
+    )
+
+
+@torch.no_grad() 
+def sdf_reset_opa_simple(
+    params: Union[Dict[str, torch.nn.Parameter], torch.nn.ParameterDict],
+    optimizers: Dict[str, torch.optim.Optimizer],
+    state: Dict[str, Tensor],
+    value: float,
+):
+    """Simpler version that just modifies the parameter in-place"""
+    if "opacities" not in params:
+        return
+        
+    opacity_param = params["opacities"]
+    
+    # Clamp the opacity values in-place
+    with torch.no_grad():
+        opacity_param.data = torch.clamp(
+            opacity_param.data, 
+            max=torch.logit(torch.tensor(value)).item()
+        )
+    
+    # Reset optimizer state for opacity parameter in all optimizers
+    for optimizer in optimizers.values():
+        if opacity_param in optimizer.state:
+            # Reset momentum and other state but keep step count
+            param_state = optimizer.state[opacity_param]
+            for key in list(param_state.keys()):
+                if key != "step":
+                    param_state[key] = torch.zeros_like(param_state[key])
+
+
+@torch.no_grad()
 def relocate(
     params: Union[Dict[str, torch.nn.Parameter], torch.nn.ParameterDict],
     optimizers: Dict[str, torch.optim.Optimizer],
