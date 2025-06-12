@@ -5,7 +5,7 @@ import torch
 from typing_extensions import Literal
 
 from .base import Strategy
-from .ops import sdf_duplicate, sdf_remove, reset_opa, sdf_split
+from .ops import sdf_duplicate, sdf_remove, reset_opa, sdf_split, sdf_reset_opa_simple
 
 
 @dataclass
@@ -200,7 +200,7 @@ class SDFStrategy(Strategy):
             torch.cuda.empty_cache()
 
         if step % self.reset_every == 0:
-            sdf_reset_opa(
+            sdf_reset_opa_simple(
                 params=params,
                 optimizers=optimizers,
                 state=state,
