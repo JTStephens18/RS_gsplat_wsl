@@ -159,8 +159,8 @@ class SDFStrategy(Strategy):
         state: Dict[str, Any],
         step: int,
         info: Dict[str, Any],
-        packed: bool = False,
-        sdfval: callable
+        sdfval: callable,
+        packed: bool = False
         #neuRISRunner: Any = None,  # Placeholder for neuRISRunner if needed
     ):
         """Callback function to be executed after the `loss.backward()` call."""
