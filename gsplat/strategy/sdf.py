@@ -455,7 +455,9 @@ class SDFStrategy(Strategy):
         Modified version that returns counts for verbose output and handles gradient information properly.
         """
         with torch.no_grad():
-            PruningThreshold = -0.002  # 裁90%
+            #PruningThreshold = -0.002  # 裁90%
+            #PruningThreshold = 0.1
+            PruningThreshold = -0.01
             DesificationThreshold = 0.95  # 70% 以上靠近的进行致密
 
             n_dupli = 0
