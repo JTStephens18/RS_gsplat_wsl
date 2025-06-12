@@ -202,7 +202,7 @@ class Config:
     sdf2gs_from: int = 5000
     sdf2gs_end: int = 30000
     is_sdf_edge: bool = False
-    is_sample_gui: bool = False
+    is_sample_gui: bool = True
     sdfStrategy: SDFStrategy = field(
         default_factory=SDFStrategy
     )
