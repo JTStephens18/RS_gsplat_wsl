@@ -297,7 +297,7 @@ class Runner:
             # img_idx 计算gs_depth然后转换到世界坐标 射线查询深度 射线查询sdf表面所在位置 根据差值计算判据 规定采样near far 
             
             #gs_depth = render_gs_depth(viewpoint_cam, gaussians, pipe, background, return_depth=True)
-            gs_depth = depths[0]
+            gs_depth = depths[0, :, :, 0]
             # viewpoint_camera负责对应 有c2w(Rt) 和内参 K 可以将深度信息映射到世界坐标系
             # K = self.dataset.intrinsics_all[idx_img]
             c2w = self.dataset.pose_all[idx_img]
