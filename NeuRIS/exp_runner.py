@@ -414,7 +414,6 @@ class Runner:
             NotImplementedError
 
         logging.debug(f"[{self.iter_step}] Sample range: max, {torch.max(far -near)}; min, {torch.min(far -near)}")
-        print("Near far function done ")
         return near, far, log_vox
     
     # 控制采样区间0.3左右？
