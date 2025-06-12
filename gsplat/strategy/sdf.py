@@ -468,6 +468,7 @@ class SDFStrategy(Strategy):
             sdf_densify_mask = (sdf_densify_guidance > DesificationThreshold).squeeze()
             
             # Clone/duplicate operation
+            print("[SDFStrategy] densify and clone ")
             n_dupli = self.sdf_densify_and_clone_with_ops(params, optimizers, state, sdf_densify_mask, grads, max_grad, extent)
 
             # Recalculate guidance after cloning (params may have changed)
@@ -476,6 +477,7 @@ class SDFStrategy(Strategy):
             sdf_densify_mask = (sdf_densify_guidance > DesificationThreshold).squeeze()
             
             # Split operation
+            print("[SDFStrategy] densify and split ")
             n_split = self.sdf_densify_and_split_with_ops(params, optimizers, state, sdf_densify_mask, grads, max_grad, extent)
 
             #-----------prune------------------
@@ -491,6 +493,7 @@ class SDFStrategy(Strategy):
                 sdf_remove(params=params, optimizers=optimizers, state=state, mask=sdf_prune_mask)
 
             # Additional pruning based on opacity and size
+            print("[SDFStrategy] additional pruning ")
             prune_mask = (torch.sigmoid(params["opacities"]) < min_opacity).squeeze()
             if max_screen_size and hasattr(self, 'max_radii2D'):
                 big_points_vs = self.max_radii2D > max_screen_size
@@ -506,5 +509,7 @@ class SDFStrategy(Strategy):
                 sdf_remove(params=params, optimizers=optimizers, state=state, mask=prune_mask)
             
             torch.cuda.empty_cache()
+
+            print("[SDFStrategy] End function ")
             
             return n_dupli, n_split, n_prune
