@@ -325,18 +325,14 @@ class Runner:
             cam_depth = torch.zeros(rays_o.shape[0]).to(self.device)
             intersection_pts = torch.zeros_like(rays_o)
 
-            print("gs_depth shape", gs_depth.shape)
-            print("cam depth shape ", cam_depth.shape)
-            print("Pixels x shape ", pixels_x.shape)
-            print("Pixels x max ", pixels_x.max().item())
+            # print("gs_depth shape", gs_depth.shape)
+            # print("cam depth shape ", cam_depth.shape)
+            # print("Pixels x shape ", pixels_x.shape)
+            # print("Pixels x max ", pixels_x.max().item())
             #cam_depth = gs_depth[pixels_y, pixels_x]
             cam_depth = gs_depth [torch.clamp(pixels_y, 0, gs_depth.shape[0]-1), 
                                   torch.clamp(pixels_x, 0, gs_depth.shape[1]-1)]
             ray_len = cam_depth / cosine_d_cam
-            print("Cam depth shape ", cam_depth.shape)
-            print("Ray len shape ", ray_len.shape)
-            print("Ray_o shape ", rays_o.shape)
-            print("Ray_d shape ", rays_d.shape)
             intersection_pts = rays_o + ray_len[:, None] * rays_d
             
             # s = sdf(pts) k|D-s|作为采样范围
