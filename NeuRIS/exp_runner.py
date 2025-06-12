@@ -331,7 +331,7 @@ class Runner:
                 # print("Pixels x shape ", pixels_x.shape)
                 # print("Pixels x max ", pixels_x.max().item())
                 #cam_depth = gs_depth[pixels_y, pixels_x]
-                cam_depth = gs_depth [torch.clamp(pixels_y, 0, gs_depth.shape[0]-1), 
+                cam_depth = gs_depth[torch.clamp(pixels_y, 0, gs_depth.shape[0]-1), 
                                     torch.clamp(pixels_x, 0, gs_depth.shape[1]-1)]
                 ray_len = cam_depth / cosine_d_cam
                 intersection_pts = rays_o + ray_len[:, None] * rays_d
