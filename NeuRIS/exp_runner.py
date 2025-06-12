@@ -432,7 +432,7 @@ class Runner:
         logging.info(f"[{self.iter_step}]: show sampled points...")
         sample_dist = self.radius_norm / self.n_samples # self.radius_norm半球采样
 
-        z_vals = torch.linspace(0.0, 1.0, self.n_samples)
+        z_vals = torch.linspace(0.0, 1.0, self.n_samples).to(self.device)
         z_vals = near + (far - near) * z_vals[None, :]  # torch.Size([512, 64])
 
         dists = z_vals[..., 1:] - z_vals[..., :-1]
