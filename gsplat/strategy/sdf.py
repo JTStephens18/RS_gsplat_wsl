@@ -83,8 +83,8 @@ class SDFStrategy(Strategy):
     prune_scale3d: float = 0.1
     prune_scale2d: float = 0.15
     refine_scale2d_stop_iter: int = 0
-    #refine_start_iter: int = 5000
-    refine_start_iter: int = 300
+    refine_start_iter: int = 5000
+    #refine_start_iter: int = 300
     refine_stop_iter: int = 30000
     #reset_every: int = 3000
     reset_every: int = 3000
@@ -199,13 +199,13 @@ class SDFStrategy(Strategy):
                 state["radii"].zero_()
             torch.cuda.empty_cache()
 
-        if step % self.reset_every == 0:
-            sdf_reset_opa_simple(
-                params=params,
-                optimizers=optimizers,
-                state=state,
-                value=self.prune_opa * 2.0,
-            )
+        # if step % self.reset_every == 0:
+        #     sdf_reset_opa_simple(
+        #         params=params,
+        #         optimizers=optimizers,
+        #         state=state,
+        #         value=self.prune_opa * 2.0,
+        #     )
 
     def _update_state(
         self,
