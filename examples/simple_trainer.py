@@ -723,9 +723,9 @@ class Runner:
             means3d_depth = means3d_depth.repeat(1, 3)
             tmp_renders, _, _ = rasterization(
                 means=means3d_depth,
-                quats=quats,
-                scales=scales,
-                opacities=opacities,
+                quats=self.splats["quats"],
+                scales=torch.exp(self.splats["scales"]),
+                opacities=torch.sigmoid(self.splats["opacities"]),
                 colors=colors,
                 viewmats=torch.linalg.inv(camtoworlds),  # [C, 4, 4]
                 Ks=Ks,  # [C, 3, 3]
