@@ -386,7 +386,7 @@ class NeuSRenderer:
                 upper = torch.cat([mids, z_vals_outside[..., -1:]], -1)
                 lower = torch.cat([z_vals_outside[..., :1], mids], -1)
                 # stratified samples in those intervals
-                t_rand = torch.rand([batch_size, z_vals_outside.shape[-1]])
+                t_rand = torch.rand([batch_size, z_vals_outside.shape[-1]]).to(self.device)
                 z_vals_outside = lower[None, :] + (upper - lower)[None, :] * t_rand
 
         if self.n_outside > 0:
