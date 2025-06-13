@@ -586,8 +586,7 @@ class Runner:
         
         # Get a batch of training data
         data = self.dataset.random_get_rays_at(0, 100)  # Get 100 rays
-        rays_o = data['rays_o'].cuda()  # Ray origins
-        rays_d = data['rays_d'].cuda()  # Ray directions
+        rays_o, rays_d = data[:, :3], data[:, 3:6]
         
         print(f"Ray origins shape: {rays_o.shape}")
         print(f"Ray directions shape: {rays_d.shape}")
