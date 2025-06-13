@@ -827,8 +827,7 @@ class Runner:
             )
 
             if tmp_renders.shape[-1] == 4:
-                depths = tmp_renders[..., 3:4]
-                print("New depths shape ", depths.shape)
+                sdf_depths = tmp_renders[..., 3:4]
 
         # ===========================================================
 
@@ -836,6 +835,9 @@ class Runner:
                 colors, depths = renders[..., 0:3], renders[..., 3:4]
             else:
                 colors, depths = renders, None
+
+            print("[Simple trainer depths] ", depths[0, :10, :10, 0])
+            print("[Simple trainer sdf depths] ", sdf_depths[0, :10, :10, 0])
 
             if cfg.use_bilateral_grid:
                 grid_y, grid_x = torch.meshgrid(
