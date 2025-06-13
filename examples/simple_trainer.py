@@ -814,6 +814,7 @@ class Runner:
             # )
 
             curr_cam = torch.from_numpy(np.linalg.inv(neuRISRunner.dataset.world_mats_np[image_ids.item()])).to(device)
+            print("Current camera sahpe ", curr_cam.shape)
 
             tmp_renders, _, _ = self.render_depth_rasterize_splats(
                 #camtoworlds=camtoworlds,
