@@ -218,6 +218,15 @@ class Runner:
             params_to_train += list(self.variance_network_fine.parameters())
             params_to_train += list(self.color_network_fine.parameters())
 
+              # ADD GEOMETRIC INITIALIZATION CHECK HERE
+            print("=== Checking SDF Network Initialization ===")
+            with torch.no_grad():
+                test_points = torch.randn(1000, 3).to(self.device) * 0.5
+                sdf_vals = self.sdf_network_fine.sdf(test_points)
+                print(f"Random SDF values: mean={sdf_vals.mean():.4f}, std={sdf_vals.std():.4f}")
+                print(f"SDF range: min={sdf_vals.min():.4f}, max={sdf_vals.max():.4f}")
+            print("=" * 50)
+
             self.renderer = NeuSRenderer(self.nerf_outside,
                                 self.sdf_network_fine,
                                 self.variance_network_fine,
@@ -421,6 +430,23 @@ class Runner:
 
         logging.debug(f"[{self.iter_step}] Sample range: max, {torch.max(far -near)}; min, {torch.min(far -near)}")
         return near, far, log_vox
+
+    def debug_ray_surface_intersection(self, rays_o, rays_d, near, far):
+        """Debug method to check if rays intersect surfaces"""
+        # Sample points along rays
+        t_vals = torch.linspace(0, 1, 100).to(self.device)
+        z_vals = near + (far - near) * t_vals[None, :]
+        pts = rays_o[:, None, :] + rays_d[:, None, :] * z_vals[..., :, None]
+        
+        with torch.no_grad():
+            sdf_vals = self.sdf_network_fine.sdf(pts.reshape(-1, 3))
+            sdf_vals = sdf_vals.reshape(pts.shape[:-1])
+            
+        # Check for sign changes (surface crossings)
+        sign_changes = ((sdf_vals[:, :-1] * sdf_vals[:, 1:]) < 0).sum()
+        print(f"Rays with surface intersections: {sign_changes}/{len(rays_o)} rays")
+        print(f"SDF along rays: mean={sdf_vals.mean():.4f}, std={sdf_vals.std():.4f}")
+        return sign_changes
     
     # 控制采样区间0.3左右？
     def update_k(self, near, far):
@@ -459,7 +485,7 @@ class Runner:
         path_int_pts = f"{dir_pts}/{self.iter_step:08d}_{gs_img_idx}_inter.ply"
         GeoUtils.save_points(path_int_pts, intersection_pts.detach().cpu().numpy())
 
-    def show_mesh(self, world_space=False, resolution=512, threshold=0.0):
+    def show_mesh(self, world_space=False, resolution=128, threshold=0.0):
         bound_min = torch.tensor(self.dataset.bbox_min, dtype=torch.float32).to(self.device) #/ self.sdf_network_fine.scale
         bound_max = torch.tensor(self.dataset.bbox_max, dtype=torch.float32).to(self.device) # / self.sdf_network_fine.scale
         vertices, triangles, sdf_fields = self.renderer.extract_geometry(bound_min, bound_max, resolution=resolution, threshold=threshold)
@@ -528,6 +554,11 @@ class Runner:
             near, far, logs_input = self.get_near_far0(rays_o, rays_d,  image_perm, iter_i, pixels_x, pixels_y)
             self.sample_info = [near.mean().item(), far.mean().item(), ((far-near)>1.9).sum()]
         
+        if self.iter_step % 1000 == 0:  # Check every 1000 steps
+            print(f"=== Ray Intersection Debug at Step {self.iter_step} ===")
+            self.debug_ray_surface_intersection(rays_o[:100], rays_d[:100], near[:100], far[:100])  # Only check first 100 rays
+            print("=" * 60)
+
         # near torch.Size([512, 1]) 全0
         # far torch.Size([512, 1]) 全2
         
