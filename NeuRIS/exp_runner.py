@@ -652,6 +652,55 @@ class Runner:
         
         print("=" * 50)
 
+    def debug_camera_and_scene_alignment(self):
+        """Check if cameras are looking at the right part of the scene"""
+        print("=== Camera and Scene Alignment Debug ===")
+        
+        # Check camera positions and orientations
+        n_cams = min(10, len(self.dataset.poses))
+        print(f"Analyzing first {n_cams} cameras:")
+        
+        for i in range(n_cams):
+            pose = self.dataset.poses[i]
+            cam_pos = pose[:3, 3]
+            cam_forward = -pose[:3, 2]  # Camera looks in -Z direction
+            
+            print(f"Camera {i}:")
+            print(f"  Position: [{cam_pos[0]:.3f}, {cam_pos[1]:.3f}, {cam_pos[2]:.3f}]")
+            print(f"  Forward: [{cam_forward[0]:.3f}, {cam_forward[1]:.3f}, {cam_forward[2]:.3f}]")
+            
+            # Check where this camera is looking (sample center of image)
+            H, W = self.dataset.H, self.dataset.W
+            intrinsic = self.dataset.intrinsics[i]
+            
+            # Get ray through image center
+            i_center, j_center = H // 2, W // 2
+            dirs = torch.stack([
+                (j_center - intrinsic[0, 2]) / intrinsic[0, 0],
+                -(i_center - intrinsic[1, 2]) / intrinsic[1, 1],
+                -torch.ones_like(torch.tensor(j_center, dtype=torch.float32))
+            ], -1)
+            
+            # Transform ray direction to world coordinates
+            rays_d = torch.sum(dirs[..., None, :] * pose[:3, :3], -1)
+            rays_d = rays_d / torch.norm(rays_d)
+            
+            print(f"  Center ray direction: [{rays_d[0]:.3f}, {rays_d[1]:.3f}, {rays_d[2]:.3f}]")
+            
+            # Sample points along center ray and check SDF
+            with torch.no_grad():
+                t_vals = torch.linspace(0.1, 2.0, 20)
+                pts = cam_pos + rays_d * t_vals[:, None]
+                sdf_vals = self.sdf_network.sdf(pts.cuda())
+                
+                min_sdf_idx = torch.argmin(torch.abs(sdf_vals))
+                closest_surface_t = t_vals[min_sdf_idx].item()
+                closest_surface_sdf = sdf_vals[min_sdf_idx].item()
+                
+                print(f"  Closest surface at t={closest_surface_t:.3f}, SDF={closest_surface_sdf:.3f}")
+        
+        print("=" * 50)
+
     def debug_initialization_bias(self):
         """Check if initialization bias is appropriate"""
         print("=== Initialization Bias Debug ===")
