@@ -189,7 +189,7 @@ class SDFStrategy(Strategy):
                 )
 
             # prune GSs
-            n_prune = self._prune_gs(params, optimizers, state, step)
+            n_prune = self._prune_gs(params, optimizers, state, step, sdfval)
             if self.verbose:
                 print(
                     f"Step {step}: SDF: {n_prune} GSs pruned. "
@@ -392,6 +392,7 @@ class SDFStrategy(Strategy):
         optimizers: Dict[str, torch.optim.Optimizer],
         state: Dict[str, Any],
         step: int,
+        sdfval: callable,
     ) -> int:
         is_prune = torch.sigmoid(params["opacities"].flatten()) < self.prune_opa
         if step > self.reset_every:
