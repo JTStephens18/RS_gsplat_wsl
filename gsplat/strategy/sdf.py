@@ -413,8 +413,9 @@ class SDFStrategy(Strategy):
 
         #n_prune = is_prune.sum().item()
         
-        prune_guidance = -(1 - self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()))
-        is_prune = (prune_guidance < self.sdf_prune_threshold).squeeze()
+        #prune_guidance = -(1 - self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()))
+        prune_guidance = self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze())
+        is_prune = prune_guidance < self.sdf_prune_threshold
         n_prune = is_prune.sum().item()
         if n_prune > 0:
             sdf_remove(params=params, optimizers=optimizers, state=state, mask=is_prune)
