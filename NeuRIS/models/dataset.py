@@ -106,7 +106,8 @@ class Dataset:
         self.world_mats_np = []
         print("Cam ", next(iter(self.cameras.items())))
         print("Images ", next(iter(images.items())) )
-        w2i = compute_world_to_image_matrix(next(iter(self.cameras.items())), next(iter(images.items())))
+        cam_test, img_test = format_colmap_data_for_projection(next(iter(self.cameras.items())), next(iter(images.items())))
+        w2i = compute_world_to_image_matrix(cam_test, img_test)
         c2w_inv = np.linalg.inv(create_camera_to_world_matrix(images[0].qvec, images[0].tvec))
         print("World to image ", w2i)
         print("Cam 2 world inverse ", c2w_inv)
@@ -714,4 +715,69 @@ class Dataset:
         scores_all_mean[mask_valid_all==False] = 1.0 # average scores for pixels without patch.
 
         return scores_all_mean, diff_patch_all, mask_valid_all
+
+    def format_colmap_data_for_projection(colmap_camera, colmap_image):
+        """
+        Convert COLMAP camera and image data to the format expected by compute_world_to_image_matrix.
+        
+        Args:
+            colmap_camera: COLMAP Camera object with model, width, height, params
+            colmap_image: COLMAP Image object with qvec, tvec, camera_id, etc.
+        
+        Returns:
+            tuple: (camera_params, image_params) dictionaries
+        """
+        
+        # Extract camera intrinsic parameters
+        # COLMAP SIMPLE_RADIAL model: [f, cx, cy, k1]
+        # where f is focal length, (cx, cy) is principal point, k1 is radial distortion
+        camera_params = {}
+        
+        if colmap_camera.model == 'SIMPLE_RADIAL':
+            f = colmap_camera.params[0]   # focal length
+            cx = colmap_camera.params[1]  # principal point x
+            cy = colmap_camera.params[2]  # principal point y
+            k1 = colmap_camera.params[3]  # radial distortion (not used in basic projection)
+            
+            # For SIMPLE_RADIAL, fx = fy = f
+            camera_params = {
+                'fx': f,
+                'fy': f,
+                'cx': cx,
+                'cy': cy,
+                'skew': 0.0  # SIMPLE_RADIAL assumes no skew
+            }
+        
+        # Extract image extrinsic parameters
+        # COLMAP uses quaternion [w, x, y, z] and translation [tx, ty, tz]
+        image_params = {
+            'quaternion': colmap_image.qvec,  # [w, x, y, z] format
+            'translation': colmap_image.tvec  # [tx, ty, tz]
+        }
+        
+        return camera_params, image_params
+
+    # Example usage with your COLMAP data
+    def parse_colmap_output():
+        """Parse the COLMAP output from your data."""
+        
+        # Camera data from your output
+        camera_data = {
+            'id': 1,
+            'model': 'SIMPLE_RADIAL',
+            'width': 640,
+            'height': 480,
+            'params': np.array([3.20775868e+02, 3.20000000e+02, 2.40000000e+02, 1.31410878e-03])
+        }
+        
+        # Image data from your output
+        image_data = {
+            'id': 1,
+            'qvec': np.array([0.96842236, -0.1062663, 0.22551437, -0.00297774]),
+            'tvec': np.array([-1.17785948, 1.00286641, -2.02006526]),
+            'camera_id': 4,
+            'name': '100.jpg'
+        }
+        
+        return camera_data, image_data
             
