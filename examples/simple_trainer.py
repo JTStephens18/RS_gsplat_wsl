@@ -601,8 +601,8 @@ class Runner:
         camera_model: Optional[Literal["pinhole", "ortho", "fisheye"]] = None,
         **kwcfg,
     ) -> Tuple[Tensor, Tensor, Dict]:
-        projvect1 = torch.linalg.inv(camtoworlds)[:,2][:3].detach()
-        projvect2 = torch.linalg.inv(camtoworlds)[:,2][-1].detach()
+        projvect1 = torch.linalg.inv(camtoworlds[0])[:,2][:3].detach()
+        projvect2 = torch.linalg.inv(camtoworlds[0])[:,2][-1].detach()
         means3d_depth = (self.splats["means"] * projvect1).sum(dim=-1, keepdim=True) + projvect2 # [N, 1]
         means3d_depth = means3d_depth.repeat(1, 3)
         #means = self.splats["means"]  # [N, 3]
@@ -813,8 +813,9 @@ class Runner:
             #     with_eval3d=self.cfg.with_eval3d,
             # )
 
-            curr_cam = torch.from_numpy(np.linalg.inv(neuRISRunner.dataset.world_mats_np[image_ids.item()])).to(device)
+            curr_cam = torch.from_numpy(np.linalg.inv(neuRISRunner.dataset.world_mats_np[image_ids.item()]))unsqueeze(0).to(device)
             print("Current camera sahpe ", curr_cam.shape)
+            print("cam to world shape ", camtoworlds.shape)
 
             tmp_renders, _, _ = self.render_depth_rasterize_splats(
                 #camtoworlds=camtoworlds,
