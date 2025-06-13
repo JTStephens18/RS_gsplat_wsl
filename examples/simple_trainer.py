@@ -600,7 +600,7 @@ class Runner:
 
         #print("Created NeuRISRunner optimizers", neuRISRunner.optimizer)
 
-        neuRISRunner.writer = SummaryWriter(log_dir="../datasets/office_0_1/runner")
+        neuRISRunner.writer = SummaryWriter(log_dir="../datasets/office_0_1/runner/logs")
         neuRISRunner.update_learning_rate()
         neuRISRunner.update_iter_step()
         #res_step = neuRISRunner.end_iter - neuRISRunner.iter_step

@@ -207,6 +207,7 @@ class Runner:
         # Networks
         params_to_train = []
         print("[Build Model] Model type: ", self.model_type)
+        print("[Build Model] Mode: ", self.mode)
         if self.model_type == 'neus':
             self.nerf_outside = NeRF(**self.conf['model.tiny_nerf']).to(self.device)
             self.sdf_network_fine = SDFNetwork(**self.conf['model.sdf_network']).to(self.device) # 返回梯度？
@@ -556,8 +557,8 @@ class Runner:
         return input_model, logs_input
 
     def train_neus(self):
+        print("[EXP Runner] Log dir ", os.path.join(self.base_exp_dir, 'logs'))
         self.writer = SummaryWriter(log_dir=os.path.join(self.base_exp_dir, 'logs'))
-        print("Log dir ", os.path.join(self.base_exp_dir, 'logs'))
         self.update_learning_rate()
         self.update_iter_step()
         res_step = self.end_iter - self.iter_step
