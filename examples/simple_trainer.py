@@ -589,6 +589,74 @@ class Runner:
             render_colors[~masks] = 0
         return render_colors, render_alphas, info
 
+
+    def render_depth_rasterize_splats(
+        self,
+        camtoworlds: Tensor,
+        Ks: Tensor,
+        width: int,
+        height: int,
+        masks: Optional[Tensor] = None,
+        rasterize_mode: Optional[Literal["classic", "antialiased"]] = None,
+        camera_model: Optional[Literal["pinhole", "ortho", "fisheye"]] = None,
+        **kwcfg,
+    ) -> Tuple[Tensor, Tensor, Dict]:
+        projvect1 = torch.linalg.inv(camtoworlds[0])[:,2][:3].detach()
+        projvect2 = torch.linalg.inv(camtoworlds[0])[:,2][-1].detach()
+        means3d_depth = (self.splats["means"] * projvect1).sum(dim=-1, keepdim=True) + projvect2 # [N, 1]
+        means3d_depth = means3d_depth.repeat(1, 3)
+        #means = self.splats["means"]  # [N, 3]
+        # quats = F.normalize(self.splats["quats"], dim=-1)  # [N, 4]
+        # rasterization does normalization internally
+        quats = self.splats["quats"]  # [N, 4]
+        scales = torch.exp(self.splats["scales"])  # [N, 3]
+        opacities = torch.sigmoid(self.splats["opacities"])  # [N,]
+
+        image_ids = kwcfg.pop("image_ids", None)
+        if self.cfg.app_opt:
+            colors = self.app_module(
+                features=self.splats["features"],
+                embed_ids=image_ids,
+                dirs=means[None, :, :] - camtoworlds[:, None, :3, 3],
+                sh_degree=kwcfg.pop("sh_degree", self.cfg.sh_degree),
+            )
+            colors = colors + self.splats["colors"]
+            colors = torch.sigmoid(colors)
+        else:
+            colors = torch.cat([self.splats["sh0"], self.splats["shN"]], 1)  # [N, K, 3]
+
+        if rasterize_mode is None:
+            rasterize_mode = "antialiased" if self.cfg.antialiased else "classic"
+        if camera_model is None:
+            camera_model = self.cfg.camera_model
+        render_colors, render_alphas, info = rasterization(
+            means=means3d_depth,
+            quats=quats,
+            scales=scales,
+            opacities=opacities,
+            colors=colors,
+            viewmats=torch.linalg.inv(camtoworlds),  # [C, 4, 4]
+            Ks=Ks,  # [C, 3, 3]
+            width=width,
+            height=height,
+            packed=self.cfg.packed,
+            absgrad=(
+                self.cfg.strategy.absgrad
+                if isinstance(self.cfg.strategy, DefaultStrategy)
+                else False
+            ),
+            sparse_grad=self.cfg.sparse_grad,
+            rasterize_mode=rasterize_mode,
+            distributed=self.world_size > 1,
+            camera_model=self.cfg.camera_model,
+            with_ut=self.cfg.with_ut,
+            with_eval3d=self.cfg.with_eval3d,
+            **kwcfg,
+        )
+        if masks is not None:
+            render_colors[~masks] = 0
+        return render_colors, render_alphas, info
+
     def train(self):
         cfg = self.cfg
         device = self.device
@@ -717,32 +785,45 @@ class Runner:
             )
         # ==================== SDF Depth ============================
 
-            projvect1 = torch.linalg.inv(camtoworlds[0])[:,2][:3].detach()
-            projvect2 = torch.linalg.inv(camtoworlds[0])[:,2][-1].detach()
-            means3d_depth = (self.splats["means"] * projvect1).sum(dim=-1, keepdim=True) + projvect2 # [N, 1]
-            means3d_depth = means3d_depth.repeat(1, 3)
-            tmp_renders, _, _ = rasterization(
-                means=means3d_depth,
-                quats=self.splats["quats"],
-                scales=torch.exp(self.splats["scales"]),
-                opacities=torch.sigmoid(self.splats["opacities"]),
-                colors=colors,
-                viewmats=torch.linalg.inv(camtoworlds),  # [C, 4, 4]
-                Ks=Ks,  # [C, 3, 3]
+            # projvect1 = torch.linalg.inv(camtoworlds[0])[:,2][:3].detach()
+            # projvect2 = torch.linalg.inv(camtoworlds[0])[:,2][-1].detach()
+            # means3d_depth = (self.splats["means"] * projvect1).sum(dim=-1, keepdim=True) + projvect2 # [N, 1]
+            # means3d_depth = means3d_depth.repeat(1, 3)
+            # tmp_renders, _, _ = rasterization(
+            #     means=means3d_depth,
+            #     quats=self.splats["quats"],
+            #     scales=torch.exp(self.splats["scales"]),
+            #     opacities=torch.sigmoid(self.splats["opacities"]),
+            #     colors=colors,
+            #     viewmats=torch.linalg.inv(camtoworlds),  # [C, 4, 4]
+            #     Ks=Ks,  # [C, 3, 3]
+            #     width=width,
+            #     height=height,
+            #     packed=self.cfg.packed,
+            #     absgrad=(
+            #         self.cfg.strategy.absgrad
+            #         if isinstance(self.cfg.strategy, DefaultStrategy)
+            #         else False
+            #     ),
+            #     sparse_grad=self.cfg.sparse_grad,
+            #     rasterize_mode=rasterize_mode,
+            #     distributed=self.world_size > 1,
+            #     camera_model=self.cfg.camera_model,
+            #     with_ut=self.cfg.with_ut,
+            #     with_eval3d=self.cfg.with_eval3d,
+            # )
+
+            tmp_renders, _, _ = self.render_depth_rasterize_splats(
+                camtoworlds=camtoworlds,
+                Ks=Ks,
                 width=width,
                 height=height,
-                packed=self.cfg.packed,
-                absgrad=(
-                    self.cfg.strategy.absgrad
-                    if isinstance(self.cfg.strategy, DefaultStrategy)
-                    else False
-                ),
-                sparse_grad=self.cfg.sparse_grad,
-                rasterize_mode=rasterize_mode,
-                distributed=self.world_size > 1,
-                camera_model=self.cfg.camera_model,
-                with_ut=self.cfg.with_ut,
-                with_eval3d=self.cfg.with_eval3d,
+                sh_degree=sh_degree_to_use,
+                near_plane=cfg.near_plane,
+                far_plane=cfg.far_plane,
+                image_ids=image_ids,
+                render_mode="RGB+ED" if cfg.depth_loss else "RGB+D",
+                masks=masks,
             )
 
             if tmp_renders.shape[-1] == 4:
