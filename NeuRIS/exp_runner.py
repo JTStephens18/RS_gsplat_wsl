@@ -815,7 +815,7 @@ class Runner:
 
         if self.iter_step % 1000 == 0:  # Check every 1000 steps
             print(f"=== Ray Intersection Debug at Step {self.iter_step} ===")
-            self.debug_ray_surface_intersection(rays_o[:100], rays_d[:100], near[:100], far[:100])  # Only check first 100 rays
+            self.debug_ray_surface_intersection(-rays_o[:100], rays_d[:100], near[:100], far[:100])  # Only check first 100 rays
             print("=" * 60)
 
         # near torch.Size([512, 1]) 全0
