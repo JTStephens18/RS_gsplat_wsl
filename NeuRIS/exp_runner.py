@@ -305,8 +305,8 @@ class Runner:
                 gs_depth = depths[0, :, :, 0]
                 # viewpoint_camera负责对应 有c2w(Rt) 和内参 K 可以将深度信息映射到世界坐标系
                 # K = self.dataset.intrinsics_all[idx_img]
-                # c2w = self.dataset.pose_all[idx_img]
-                c2w = camtoworld[0]
+                c2w = self.dataset.pose_all[idx_img]
+                #c2w = camtoworld[0]
                 w2c = torch.linalg.inv(c2w)
 
                 # 转换射线到相机坐标
@@ -406,7 +406,7 @@ class Runner:
                     if cam_depth.mean() < 0.2:
                         self.cnt += 1
                     if cam_depth.mean() < 0.1 and self.iter_step % 1000 > 50: # 正常在0.4左右 不正常小一个数量级
-                        scene.show(self.iter_step + 15000)
+                        #scene.show(self.iter_step + 15000)
                         self.show_samlpe_points(rays_o, rays_d, near, far, intersection_pts, gs_img_idx)
                         self.show_mesh()
                     
