@@ -306,6 +306,8 @@ class Runner:
                 # viewpoint_camera负责对应 有c2w(Rt) 和内参 K 可以将深度信息映射到世界坐标系
                 # K = self.dataset.intrinsics_all[idx_img]
                 c2w = self.dataset.pose_all[idx_img]
+                print("[Exp Runner c2w] ", c2w.shape)
+                print("[Exp Runner camtoworld] ", camtoworld.shape)
                 w2c = torch.linalg.inv(c2w)
 
                 # 转换射线到相机坐标
@@ -503,7 +505,6 @@ class Runner:
 
         idx_img = image_perm[self.iter_step % self.dataset.n_images] 
         self.curr_img_idx = idx_img
-        print("[EXP Runner] Current image index: ", idx_img)
         data, pixels_x, pixels_y,  normal_sample, planes_sample, subplanes_sample = self.dataset.random_get_rays_at(idx_img, self.batch_size)
         # [rays_o, rays_v, color, mask] pixels_x, pixels_y, normal_sample, planes_sample, subplanes_sample
         # torch.Size([512, 3]) torch.Size([512, 3]) torch.Size([512, 3]) torch.Size([512, 1]) | torch.Size([512]) torch.Size([512]) None None None

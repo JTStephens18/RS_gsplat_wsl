@@ -715,7 +715,6 @@ class Runner:
                 render_mode="RGB+ED" if cfg.depth_loss else "RGB+D",
                 masks=masks,
             )
-            print("[Simple trainer] render shape ", renders.shape[-1])
             if renders.shape[-1] == 4:
                 colors, depths = renders[..., 0:3], renders[..., 3:4]
             else:
