@@ -83,8 +83,8 @@ class SDFStrategy(Strategy):
     prune_scale3d: float = 0.1
     prune_scale2d: float = 0.15
     refine_scale2d_stop_iter: int = 0
-    #refine_start_iter: int = 5000 #sdf2gs_from
-    refine_start_iter: int = 300
+    refine_start_iter: int = 5000 #sdf2gs_from
+    #refine_start_iter: int = 300
     refine_stop_iter: int = 30000 #sdf2gs_end
     #reset_every: int = 3000
     reset_every: int = 3000
@@ -417,7 +417,12 @@ class SDFStrategy(Strategy):
         prune_guidance = self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze())
         is_prune = prune_guidance < self.sdf_prune_threshold
         n_prune = is_prune.sum().item()
-        if n_prune > 0:
+        if n_prune == params["means"].shape[0]:
+            print(
+                f"[SDFStrategy] Warning: All {n_prune} GSs are attempted to be pruned. "
+            )
+            return 0
+        elif n_prune > 0:
             sdf_remove(params=params, optimizers=optimizers, state=state, mask=is_prune)
 
         return n_prune
