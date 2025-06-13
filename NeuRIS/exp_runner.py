@@ -424,7 +424,7 @@ class Runner:
     
     # 控制采样区间0.3左右？
     def update_k(self, near, far):
-        self.k = self.k - self.args.kk*(1.0/self.args.iterations)
+       # self.k = self.k - self.args.kk*(1.0/self.args.iterations)
         # if near.any() < 0.1 or far.any() > 1:
         #     self.k -= 1
         if (far - near).mean() < 0.1:
@@ -459,7 +459,7 @@ class Runner:
         path_int_pts = f"{dir_pts}/{self.iter_step:08d}_{gs_img_idx}_inter.ply"
         GeoUtils.save_points(path_int_pts, intersection_pts.detach().cpu().numpy())
 
-    def show_mesh(self, world_space=False, resolution=128, threshold=0.0):
+    def show_mesh(self, world_space=False, resolution=512, threshold=0.0):
         bound_min = torch.tensor(self.dataset.bbox_min, dtype=torch.float32).to(self.device) #/ self.sdf_network_fine.scale
         bound_max = torch.tensor(self.dataset.bbox_max, dtype=torch.float32).to(self.device) # / self.sdf_network_fine.scale
         vertices, triangles, sdf_fields = self.renderer.extract_geometry(bound_min, bound_max, resolution=resolution, threshold=threshold)
