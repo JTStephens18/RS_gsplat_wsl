@@ -104,7 +104,9 @@ class Dataset:
 
         images = read_images_binary(self.data_dir + "/sparse/0/images.bin")
         self.world_mats_np = []
-        w2i = compute_world_to_image_matrix(self.cameras[0], images[0])
+        print("Cam ", next(iter(self.cameras.items())))
+        print("Images ", next(iter(images.items())) )
+        w2i = compute_world_to_image_matrix(next(iter(self.cameras.items())), next(iter(images.items())))
         c2w_inv = np.linalg.inv(create_camera_to_world_matrix(images[0].qvec, images[0].tvec))
         print("World to image ", w2i)
         print("Cam 2 world inverse ", c2w_inv)
