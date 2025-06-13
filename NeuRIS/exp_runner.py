@@ -691,7 +691,7 @@ class Runner:
             with torch.no_grad():
                 t_vals = torch.linspace(0.1, 2.0, 20)
                 pts = cam_pos + rays_d * t_vals[:, None]
-                sdf_vals = self.sdf_network.sdf(pts.cuda())
+                sdf_vals = self.sdf_network_fine.sdf(pts.cuda())
                 
                 min_sdf_idx = torch.argmin(torch.abs(sdf_vals))
                 closest_surface_t = t_vals[min_sdf_idx].item()
@@ -868,6 +868,7 @@ class Runner:
         # self.test_sphere_overfitting()
 
         self.debug_ray_sampling_detailed()
+        self.debug_camera_and_scene_alignment()
 
         if self.iter_step % 1000 == 0:  # Check every 1000 steps
             print(f"=== Ray Intersection Debug at Step {self.iter_step} ===")

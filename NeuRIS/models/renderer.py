@@ -369,7 +369,7 @@ class NeuSRenderer:
 
         z_vals_outside = None
         if self.n_outside > 0:
-            z_vals_outside = torch.linspace(1e-3, 1.0 - 1.0 / (self.n_outside + 1.0), self.n_outside)
+            z_vals_outside = torch.linspace(1e-3, 1.0 - 1.0 / (self.n_outside + 1.0), self.n_outside).to(self.device)
 
         n_samples = self.n_samples
         perturb = self.perturb
