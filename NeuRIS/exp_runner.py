@@ -584,38 +584,36 @@ class Runner:
         """Debug the depth sampling strategy"""
         print("=== Ray Depth Sampling Debug ===")
         
-        # Get a batch of rays
+        # Get a batch of rays (e.g., 100 rays)
         rays_o, rays_d, target_rgb, mask = self.dataset.gen_random_rays_at(0, 100)
         
-        # Check your current sampling strategy
         with torch.no_grad():
-            # Sample depths along rays (using your current strategy)
-            near, far = self.dataset.near_far_from_sphere(rays_o, rays_d)
-            print(f"Near distances: mean={near.mean():.4f}, range=[{near.min():.4f}, {near.max():.4f}]")
-            print(f"Far distances: mean={far.mean():.4f}, range=[{far.min():.4f}, {far.max():.4f}]")
+            # ... (previous print statements)
             
             # Sample points along rays
             t_vals = torch.linspace(0., 1., steps=64).to(self.device)
             z_vals = near[...,None] * (1.-t_vals) + far[...,None] * t_vals
+            # z_vals correctly has the shape [100, 64]
             
-            print(f"Sampled depths: mean={z_vals.mean():.4f}, range=[{z_vals.min():.4f}, {z_vals.max():.4f}]")
+            # ... (print statements for depths)
             
             # Get points along rays
             pts = rays_o[...,None,:] + rays_d[...,None,:] * z_vals[...,:,None]
             pts_flat = pts.reshape(-1, 3)
             
             # Query SDF at these points
-            sdf_vals = self.sdf_network_fine(pts_flat).reshape(pts.shape[:-1])
+            # FIX: Reshape using z_vals.shape, which is the correct target shape ([100, 64]).
+            # Do not use pts.shape, as it appears to be getting corrupted.
+            sdf_vals = self.sdf_network_fine(pts_flat).reshape(z_vals.shape)
             
+            # ... (the rest of the function remains the same)
             print(f"SDF along rays: mean={sdf_vals.mean():.4f}, std={sdf_vals.std():.4f}")
             print(f"SDF range: [{sdf_vals.min():.4f}, {sdf_vals.max():.4f}]")
             
-            # Count sign changes (surface intersections)
             sign_changes = 0
-            for i in range(sdf_vals.shape[0]):  # For each ray
-                ray_sdf = sdf_vals[i]  # SDF values along this ray
+            for i in range(sdf_vals.shape[0]):
+                ray_sdf = sdf_vals[i]
                 signs = torch.sign(ray_sdf)
-                # Count transitions from positive to negative or vice versa
                 transitions = (signs[:-1] * signs[1:] < 0).sum()
                 if transitions > 0:
                     sign_changes += 1
