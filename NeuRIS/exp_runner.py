@@ -908,15 +908,15 @@ class Runner:
             #     if id(k) not in [id(p) for group in self.optimizer.param_groups for p in group['params']]:
             #         print("Missing tensor in param_groups:", k)
                     
-            optimizer_state = torch.optim.Optimizer.state_dict(self.optimizer)
+            #optimizer_state = torch.optim.Optimizer.state_dict(self.optimizer)
 
             checkpoint = {
                 'nerf': self.nerf_outside.state_dict(),
                 'sdf_network_fine': self.sdf_network_fine.state_dict(),
                 'variance_network_fine': self.variance_network_fine.state_dict(),
                 'color_network_fine': self.color_network_fine.state_dict(),
-                #'optimizer': self.optimizer.state_dict(),
-                'optimizer': optimizer_state,
+                'optimizer': self.optimizer.state_dict(),
+                #'optimizer': optimizer_state,
                 'iter_step': self.iter_step,
             }
 
@@ -934,6 +934,7 @@ class Runner:
 
         os.makedirs(os.path.join(self.base_exp_dir, 'checkpoints'), exist_ok=True)
         torch.save(checkpoint, os.path.join(self.base_exp_dir, 'checkpoints', 'ckpt_{:0>6d}.pth'.format(self.iter_step)))
+        print("[EXP Runner] Save checkpoint at ", os.path.join(self.base_exp_dir, 'checkpoints', 'ckpt_{:0>6d}.pth'.format(self.iter_step)))
 
     def validate(self, input_model, loss_out, render_out):
         mask, rays_o, rays_d, near, far = input_model['mask'], input_model['rays_o'], input_model['rays_d'],  \
