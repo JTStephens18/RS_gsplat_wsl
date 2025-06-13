@@ -282,8 +282,8 @@ class Runner:
             camtoworld, gs2sdf_from = gs_render_conf
 
             c2w = self.dataset.pose_all[idx_img]
-            print("[Exp Runner c2w] ", c2w.shape)
-            print("[Exp Runner camtoworld] ", camtoworld.shape)
+            print("[Exp Runner c2w] ", c2w)
+            print("[Exp Runner camtoworld] ", camtoworld[0])
             
             if self.iter_step < gs2sdf_from or self.iter_step % 3000 < self.args.no_sam_iter: # 清空opacity的轮次不要过多指导
                 near, far = torch.zeros(batch_size, 1).to(self.device), self.sample_range_indoor * torch.ones(batch_size, 1).to(self.device)
