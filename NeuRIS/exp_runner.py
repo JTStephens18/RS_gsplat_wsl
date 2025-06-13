@@ -605,7 +605,7 @@ class Runner:
             pts_flat = pts.reshape(-1, 3)
             
             # Query SDF at these points
-            sdf_vals = self.sdf_network(pts_flat).reshape(pts.shape[:-1])
+            sdf_vals = self.sdf_network_fine(pts_flat).reshape(pts.shape[:-1])
             
             print(f"SDF along rays: mean={sdf_vals.mean():.4f}, std={sdf_vals.std():.4f}")
             print(f"SDF range: [{sdf_vals.min():.4f}, {sdf_vals.max():.4f}]")
