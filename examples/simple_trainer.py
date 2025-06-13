@@ -836,8 +836,8 @@ class Runner:
             else:
                 colors, depths = renders, None
 
-            print("[Simple trainer depths] ", depths[0, :10, :10, 0])
-            print("[Simple trainer sdf depths] ", sdf_depths[0, :10, :10, 0])
+            # print("[Simple trainer depths] ", depths[0, :10, :10, 0])
+            # print("[Simple trainer sdf depths] ", sdf_depths[0, :10, :10, 0])
 
             if cfg.use_bilateral_grid:
                 grid_y, grid_x = torch.meshgrid(
@@ -930,7 +930,7 @@ class Runner:
 
             gs_render_conf = camtoworlds, cfg.gs2sdf_from
 
-            input_model, logs_input = neuRISRunner.get_model_input(image_perm, iter_i, gs_render_conf, depths)
+            input_model, logs_input = neuRISRunner.get_model_input(image_perm, iter_i, gs_render_conf, sdf_depths)
             logs_summary.update(logs_input)
 
             render_out, logs_render = neuRISRunner.renderer.render(
