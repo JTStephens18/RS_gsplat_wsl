@@ -584,11 +584,15 @@ class Runner:
         """Debug the depth sampling strategy"""
         print("=== Ray Depth Sampling Debug ===")
         
-        # Get a batch of rays (e.g., 100 rays)
+        # Get a batch of rays
         rays_o, rays_d, target_rgb, mask = self.dataset.gen_random_rays_at(0, 100)
         
+        # Check your current sampling strategy
         with torch.no_grad():
-            # ... (previous print statements)
+            # Sample depths along rays (using your current strategy)
+            near, far = self.dataset.near_far_from_sphere(rays_o, rays_d)
+            print(f"Near distances: mean={near.mean():.4f}, range=[{near.min():.4f}, {near.max():.4f}]")
+            print(f"Far distances: mean={far.mean():.4f}, range=[{far.min():.4f}, {far.max():.4f}]")
             
             # Sample points along rays
             t_vals = torch.linspace(0., 1., steps=64).to(self.device)
