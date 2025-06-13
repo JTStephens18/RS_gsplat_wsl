@@ -108,7 +108,7 @@ class Dataset:
         print("Images ", next(iter(images.items())) )
         cam_test, img_test = self.format_colmap_data_for_projection(next(iter(self.cameras.items()))[1], next(iter(images.items()))[1])
         w2i = compute_world_to_image_matrix(cam_test, img_test)
-        c2w_inv = np.linalg.inv(create_camera_to_world_matrix(images[0].qvec, images[0].tvec))
+        c2w_inv = np.linalg.inv(create_camera_to_world_matrix(img_test.qvec, img_test.tvec))
         print("World to image ", w2i)
         print("Cam 2 world inverse ", c2w_inv)
         for img_id, img_data in images.items():
