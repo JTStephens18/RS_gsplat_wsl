@@ -104,13 +104,13 @@ class Dataset:
 
         images = read_images_binary(self.data_dir + "/sparse/0/images.bin")
         self.world_mats_np = []
-        print("Cam ", next(iter(self.cameras.items())))
-        print("Images ", next(iter(images.items())) )
-        cam_test, img_test = self.format_colmap_data_for_projection(next(iter(self.cameras.items()))[1], next(iter(images.items()))[1])
-        w2i = compute_world_to_image_matrix(cam_test, img_test)
-        c2w_inv = np.linalg.inv(create_camera_to_world_matrix(next(iter(images.items()))[1].qvec, next(iter(images.items()))[1].tvec))
-        print("World to image ", w2i)
-        print("Cam 2 world inverse ", c2w_inv)
+        # print("Cam ", next(iter(self.cameras.items())))
+        # print("Images ", next(iter(images.items())) )
+        # cam_test, img_test = self.format_colmap_data_for_projection(next(iter(self.cameras.items()))[1], next(iter(images.items()))[1])
+        # w2i = compute_world_to_image_matrix(cam_test, img_test)
+        # c2w_inv = np.linalg.inv(create_camera_to_world_matrix(next(iter(images.items()))[1].qvec, next(iter(images.items()))[1].tvec))
+        # print("World to image ", w2i)
+        # print("Cam 2 world inverse ", c2w_inv)
         for img_id, img_data in images.items():
             self.world_mats_np.append(np.linalg.inv(create_camera_to_world_matrix(img_data.qvec, img_data.tvec)))
 
@@ -173,6 +173,8 @@ class Dataset:
             P = world_mat @ scale_mat # scale_mat 单位矩阵 world_mat pose形式数值大
             P = P[:3, :4] # (3, 4)
             intrinsics, pose = load_K_Rt_from_P(None, P)
+            print("[Dataset], Intrinsics shape ", intrinsics.shape)
+            print("[Dataset], Pose shape ", pose.shape)
             if self.resolution_level > 1.0:
                 intrinsics[:2,:3] /= self.resolution_level
             self.intrinsics_all.append(torch.from_numpy(intrinsics).float())
