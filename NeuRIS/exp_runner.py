@@ -260,7 +260,7 @@ class Runner:
                 self.dataset.world_mats_np[i][:3, 3] = cam_pos_normalized
             
             # Update tensor version
-            self.dataset.world_mats = torch.from_numpy(self.dataset.world_mats_np).float()
+            self.dataset.world_mats = torch.from_numpy(np.array(self.dataset.world_mats_np)).float()
         
         # Handle pose matrices (often stored as pose_all)
         if hasattr(self.dataset, 'pose_all'):
