@@ -447,6 +447,93 @@ class Runner:
         print(f"Rays with surface intersections: {sign_changes}/{len(rays_o)} rays")
         print(f"SDF along rays: mean={sdf_vals.mean():.4f}, std={sdf_vals.std():.4f}")
         return sign_changes
+
+    def debug_scene_bounds_and_rays(self):
+        """Debug scene bounds and ray sampling"""
+        print("=== Scene Bounds & Ray Debug ===")
+        
+        # Check dataset bounds
+        print(f"Dataset bbox_min: {self.dataset.bbox_min}")
+        print(f"Dataset bbox_max: {self.dataset.bbox_max}")
+        print(f"Scene scale: {getattr(self.dataset, 'scale_mats_np', 'Unknown')}")
+        
+        # Sample some rays and check their bounds
+        idx_img = 0
+        data, pixels_x, pixels_y, _, _, _ = self.dataset.random_get_rays_at(idx_img, 100)
+        rays_o, rays_d = data[:, :3], data[:, 3:6]
+        
+        print(f"Ray origins range: {rays_o.min(0)[0]} to {rays_o.max(0)[0]}")
+        print(f"Ray directions range: {rays_d.min(0)[0]} to {rays_d.max(0)[0]}")
+        
+        # Check what happens at different depths along rays
+        depths = torch.linspace(0.1, 2.0, 20).to(self.device)
+        sample_pts = rays_o[0:1, None, :] + rays_d[0:1, None, :] * depths[None, :, None]
+        sample_pts = sample_pts.reshape(-1, 3)
+        
+        with torch.no_grad():
+            sdf_vals = self.sdf_network_fine.sdf(sample_pts)[:, 0]
+        
+        print(f"SDF along first ray at depths {depths[0]:.2f} to {depths[-1]:.2f}:")
+        print(f"  SDF range: {sdf_vals.min():.4f} to {sdf_vals.max():.4f}")
+        print(f"  Sign changes: {((sdf_vals[:-1] * sdf_vals[1:]) < 0).sum()}")
+        
+        print("=" * 50)
+
+    def debug_initialization_bias(self):
+        """Check if initialization bias is appropriate"""
+        print("=== Initialization Bias Debug ===")
+        
+        # Sample points at different distances from origin
+        distances = [0.1, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0]
+        
+        for dist in distances:
+            # Sample points on sphere of given radius
+            pts = torch.randn(1000, 3).to(self.device)
+            pts = F.normalize(pts, dim=1) * dist
+            
+            with torch.no_grad():
+                sdf_vals = self.sdf_network_fine.sdf(pts)[:, 0]
+            
+            print(f"Distance {dist:.1f}: SDF mean={sdf_vals.mean():.4f}, std={sdf_vals.std():.4f}")
+        
+        print("For indoor scenes, you typically want:")
+        print("  - SDF ~0 at distance 0.5-1.0 (scene boundary)")
+        print("  - SDF negative inside, positive outside")
+        print("=" * 50)
+
+    def test_sphere_overfitting(self):
+        """Test if the SDF network can learn a simple sphere"""
+        print("=== Testing SDF Network Capability ===")
+        
+        # Create a simple sphere SDF ground truth
+        center = torch.zeros(3).to(self.device)
+        radius = 0.5
+        
+        # Generate test points around the sphere
+        test_pts = torch.randn(5000, 3).to(self.device) * 1.0  # Sample in [-1,1]^3
+        gt_sdf = torch.norm(test_pts - center, dim=1) - radius
+        
+        # Create a separate optimizer for testing
+        test_optimizer = torch.optim.Adam(self.sdf_network_fine.parameters(), lr=1e-3)
+        
+        print(f"Ground truth SDF range: {gt_sdf.min():.4f} to {gt_sdf.max():.4f}")
+        print(f"Surface points (|sdf| < 0.1): {(torch.abs(gt_sdf) < 0.1).sum()}/{len(gt_sdf)}")
+        
+        # Train only on sphere data
+        for i in range(2000):
+            pred_sdf = self.sdf_network_fine.sdf(test_pts)[:, 0]
+            loss = F.mse_loss(pred_sdf, gt_sdf)
+            
+            test_optimizer.zero_grad()
+            loss.backward()
+            test_optimizer.step()
+            
+            if i % 200 == 0:
+                with torch.no_grad():
+                    surface_error = torch.abs(pred_sdf[torch.abs(gt_sdf) < 0.1] - gt_sdf[torch.abs(gt_sdf) < 0.1]).mean()
+                print(f"Sphere test step {i}: loss = {loss.item():.6f}, surface_error = {surface_error.item():.4f}")
+        
+        print("=== Sphere Test Complete ===\n")
     
     # 控制采样区间0.3左右？
     def update_k(self, near, far):
@@ -554,6 +641,10 @@ class Runner:
             near, far, logs_input = self.get_near_far0(rays_o, rays_d,  image_perm, iter_i, pixels_x, pixels_y)
             self.sample_info = [near.mean().item(), far.mean().item(), ((far-near)>1.9).sum()]
         
+        self.debug_scene_bounds_and_rays()
+        self.debug_initialization_bias()
+        self.test_sphere_overfitting()
+
         if self.iter_step % 1000 == 0:  # Check every 1000 steps
             print(f"=== Ray Intersection Debug at Step {self.iter_step} ===")
             self.debug_ray_surface_intersection(rays_o[:100], rays_d[:100], near[:100], far[:100])  # Only check first 100 rays
