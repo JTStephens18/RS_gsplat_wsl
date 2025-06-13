@@ -92,15 +92,15 @@ class Dataset:
         # camera_dict = np.load(path_cam)
         # logging.info(f'Load camera dict: {path_cam.split("/")[-1]}')
 
-        cameras = read_cameras_binary(self.data_dir + "/sparse/0/cameras.bin")
+        self.cameras = read_cameras_binary(self.data_dir + "/sparse/0/cameras.bin")
 
-        print(f"Total cameras loaded: {len(cameras)}")
-        for camera_id, camera in cameras.items():
-            print(f"Camera ID: {camera_id}")
-            print(f"  Model: {camera.model}")
-            print(f"  Dimensions: {camera.width} x {camera.height}")
-            print(f"  Parameters: {camera.params}")
-            print(f"  Number of parameters: {len(camera.params)}")
+        # print(f"Total cameras loaded: {len(cameras)}")
+        # for camera_id, camera in cameras.items():
+        #     print(f"Camera ID: {camera_id}")
+        #     print(f"  Model: {camera.model}")
+        #     print(f"  Dimensions: {camera.width} x {camera.height}")
+        #     print(f"  Parameters: {camera.params}")
+        #     print(f"  Number of parameters: {len(camera.params)}")
 
         images = read_images_binary(self.data_dir + "/sparse/0/images.bin")
         self.world_mats_np = []
@@ -149,6 +149,7 @@ class Dataset:
             self.scale_mats_np = self.estimated_scale_mat()
         else:
             self.scale_mats_np = np.array([np.eye(4) for _ in range(len(self.world_mats_np))])
+            print("[Dataset] Scale mat ", self.scale_mats_np)
             #self.scale_mats_np = [camera_dict['scale_mat_%d' % idx].astype(np.float32) for idx in range(self.n_images_ori)]
 
         ### data split

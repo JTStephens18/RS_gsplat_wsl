@@ -715,6 +715,42 @@ class Runner:
                 render_mode="RGB+ED" if cfg.depth_loss else "RGB+D",
                 masks=masks,
             )
+        # ==================== SDF Depth ============================
+
+            projvect1 = torch.linalg.inv(camtoworlds[0])[:,2][:3].detach()
+            projvect2 = torch.linalg.inv(camtoworlds[0])[:,2][-1].detach()
+            means3d_depth = (self.splats["means"] * projvect1).sum(dim=-1, keepdim=True) + projvect2 # [N, 1]
+            means3d_depth = means3d_depth.repeat(1, 3)
+            tmp_renders, _, _ = rasterization(
+                means=means3d_depth,
+                quats=quats,
+                scales=scales,
+                opacities=opacities,
+                colors=colors,
+                viewmats=torch.linalg.inv(camtoworlds),  # [C, 4, 4]
+                Ks=Ks,  # [C, 3, 3]
+                width=width,
+                height=height,
+                packed=self.cfg.packed,
+                absgrad=(
+                    self.cfg.strategy.absgrad
+                    if isinstance(self.cfg.strategy, DefaultStrategy)
+                    else False
+                ),
+                sparse_grad=self.cfg.sparse_grad,
+                rasterize_mode=rasterize_mode,
+                distributed=self.world_size > 1,
+                camera_model=self.cfg.camera_model,
+                with_ut=self.cfg.with_ut,
+                with_eval3d=self.cfg.with_eval3d,
+            )
+
+            if tmp_renders.shape[-1] == 4:
+                depths = tmp_renders[..., 3:4]
+                print("New depths shape ", depths.shape)
+
+        # ===========================================================
+
             if renders.shape[-1] == 4:
                 colors, depths = renders[..., 0:3], renders[..., 3:4]
             else:
