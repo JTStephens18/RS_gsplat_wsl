@@ -193,6 +193,7 @@ class Config:
 
 # ====== SDF Args ======
     scene_name: str = "office_0_1"
+    dataset_type: str = "indoor"
     iterations: int = 30000
     is_sdf_norm: bool = True
     gs2sdf_from: int = 5000
@@ -718,6 +719,9 @@ class Runner:
                 colors, depths = renders[..., 0:3], renders[..., 3:4]
             else:
                 colors, depths = renders, None
+
+
+            print("[Simple Trainer] Depths shape: ", depths.shape)
 
             if cfg.use_bilateral_grid:
                 grid_y, grid_x = torch.meshgrid(
