@@ -245,9 +245,12 @@ class Runner:
         self.loss_neus = NeuSLoss(self.conf['model.loss'], self.args.is_sdf_norm)
 
     def train(self):
+        print("[EXP Runner] Start training...")
         if self.model_type == 'neus':
+            print("[EXP Runner] Start training NeuS...")
             self.train_neus()
         elif self.model_type == 'nerf':
+            print("[EXP Runner] Start training NeRF...")
             self.train_nerf()
         else:
             NotImplementedError
