@@ -193,7 +193,7 @@ class Config:
 
 # ====== SDF Args ======
     scene_name: str = "office_0_1"
-    iterations: int = 20000
+    iterations: int = 30000
     is_sdf_norm: bool = True
     gs2sdf_from: int = 5000
     gs2sdf_end: int = 5000

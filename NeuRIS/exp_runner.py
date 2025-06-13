@@ -557,6 +557,7 @@ class Runner:
 
     def train_neus(self):
         self.writer = SummaryWriter(log_dir=os.path.join(self.base_exp_dir, 'logs'))
+        print("Log dir ", os.path.join(self.base_exp_dir, 'logs'))
         self.update_learning_rate()
         self.update_iter_step()
         res_step = self.end_iter - self.iter_step

@@ -96,8 +96,9 @@ class SDFStrategy(Strategy):
     key_for_gradient: Literal["means2d", "gradient_2dgs"] = "means2d"
     geo_interval: int = 100
     percent_dense: float = 0.01
-    sdf_prune_threshold = 0.01
-    sdf_densification_threshold = 0.7
+    sdf_prune_threshold = 0.05
+    sdf_densification_threshold = 0.9
+    sdf_split_threshold = 0.85
 
     def initialize_state(self, scene_scale: float = 1.0) -> Dict[str, Any]:
         """Initialize and return the running state for this strategy.
@@ -361,7 +362,7 @@ class SDFStrategy(Strategy):
             is_split |= state["radii"] > self.grow_scale2d
         #n_split = is_split.sum().item()
 
-        is_split = self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()) > self.sdf_densification_threshold
+        is_split = self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()) > self.sdf_split_threshold
         n_split = is_split.sum().item() 
 
         # first duplicate
