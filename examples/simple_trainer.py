@@ -715,13 +715,11 @@ class Runner:
                 render_mode="RGB+ED" if cfg.depth_loss else "RGB+D",
                 masks=masks,
             )
+            print("[Simple trainer] render shape ", renders.shape[-1])
             if renders.shape[-1] == 4:
                 colors, depths = renders[..., 0:3], renders[..., 3:4]
             else:
                 colors, depths = renders, None
-
-
-            print("[Simple Trainer] Depths shape: ", depths.shape)
 
             if cfg.use_bilateral_grid:
                 grid_y, grid_x = torch.meshgrid(

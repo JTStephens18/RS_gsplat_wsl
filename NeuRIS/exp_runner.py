@@ -503,6 +503,7 @@ class Runner:
 
         idx_img = image_perm[self.iter_step % self.dataset.n_images] 
         self.curr_img_idx = idx_img
+        print("[EXP Runner] Current image index: ", idx_img)
         data, pixels_x, pixels_y,  normal_sample, planes_sample, subplanes_sample = self.dataset.random_get_rays_at(idx_img, self.batch_size)
         # [rays_o, rays_v, color, mask] pixels_x, pixels_y, normal_sample, planes_sample, subplanes_sample
         # torch.Size([512, 3]) torch.Size([512, 3]) torch.Size([512, 3]) torch.Size([512, 1]) | torch.Size([512]) torch.Size([512]) None None None
