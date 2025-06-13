@@ -187,6 +187,53 @@ def read_images_binary(path_to_model_file):
             )
     return images
 
+
+def read_cameras_binary(path_to_model_file):
+    """
+    Read COLMAP cameras.bin file
+    
+    Args:
+        path_to_model_file: Path to cameras.bin file
+        
+    Returns:
+        Dictionary mapping camera_id to Camera namedtuple
+    """
+    cameras = {}
+    
+    with open(path_to_model_file, "rb") as f:
+        num_cameras = struct.unpack("<Q", f.read(8))[0]
+        
+        for _ in range(num_cameras):
+            # Read camera ID
+            camera_id = struct.unpack("<I", f.read(4))[0]
+            
+            # Read model type
+            model_id = struct.unpack("<I", f.read(4))[0]
+            model_name = CAMERA_MODELS.get(model_id, f"UNKNOWN_{model_id}")
+            
+            # Read image dimensions
+            width = struct.unpack("<Q", f.read(8))[0]
+            height = struct.unpack("<Q", f.read(8))[0]
+            
+            # Read number of parameters
+            num_params = struct.unpack("<Q", f.read(8))[0]
+            
+            # Read parameters
+            params = []
+            for _ in range(num_params):
+                param = struct.unpack("<d", f.read(8))[0]
+                params.append(param)
+            
+            cameras[camera_id] = Camera(
+                id=camera_id,
+                model=model_name,
+                width=width,
+                height=height,
+                params=np.array(params)
+            )
+    
+    return cameras
+
 def qvec2rotmat(qvec):
     return np.array(
         [

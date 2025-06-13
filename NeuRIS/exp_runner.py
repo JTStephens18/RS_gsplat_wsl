@@ -306,8 +306,6 @@ class Runner:
                 # viewpoint_camera负责对应 有c2w(Rt) 和内参 K 可以将深度信息映射到世界坐标系
                 # K = self.dataset.intrinsics_all[idx_img]
                 # c2w = self.dataset.pose_all[idx_img]
-                # print("[Exp Runner c2w] ", c2w.shape)
-                # print("[Exp Runner camtoworld] ", camtoworld.shape)
                 c2w = camtoworld[0]
                 w2c = torch.linalg.inv(c2w)
 

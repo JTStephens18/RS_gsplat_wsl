@@ -351,19 +351,19 @@ class SDFStrategy(Strategy):
             <= self.grow_scale3d * state["scene_scale"]
         )
         is_dupli = is_grad_high & is_small
-        #n_dupli = is_dupli.sum().item()
-
-        is_dupli = self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()) > self.sdf_densification_threshold
         n_dupli = is_dupli.sum().item()
+
+        #is_dupli = self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()) > self.sdf_densification_threshold
+        #n_dupli = is_dupli.sum().item()
 
         is_large = ~is_small
         is_split = is_grad_high & is_large
         if step < self.refine_scale2d_stop_iter:
             is_split |= state["radii"] > self.grow_scale2d
-        #n_split = is_split.sum().item()
+        n_split = is_split.sum().item()
 
-        is_split = self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()) > self.sdf_split_threshold
-        n_split = is_split.sum().item() 
+        #is_split = self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()) > self.sdf_split_threshold
+        #n_split = is_split.sum().item() 
 
         # first duplicate
         if n_dupli > 0:
@@ -413,12 +413,12 @@ class SDFStrategy(Strategy):
 
             is_prune = is_prune | is_too_big
 
-        #n_prune = is_prune.sum().item()
+        n_prune = is_prune.sum().item()
         
         #prune_guidance = -(1 - self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()))
         prune_guidance = self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze())
-        is_prune = prune_guidance < self.sdf_prune_threshold
-        n_prune = is_prune.sum().item()
+        #is_prune = prune_guidance < self.sdf_prune_threshold
+        #n_prune = is_prune.sum().item()
         if n_prune == params["means"].shape[0]:
             print(
                 f"[SDFStrategy] Warning: All {n_prune} GSs are attempted to be pruned. "

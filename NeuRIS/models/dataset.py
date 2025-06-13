@@ -12,7 +12,7 @@ from icecream import ic
 from scipy.spatial.transform import Rotation as Rot
 from scipy.spatial.transform import Slerp
 
-from NeuRIS.utils.utils_image import read_images, write_image, write_images, read_images_binary, create_camera_to_world_matrix
+from NeuRIS.utils.utils_image import read_images, write_image, write_images, read_images_binary, read_cameras_binary, create_camera_to_world_matrix
 from NeuRIS.utils.utils_io import checkExistence, ensure_dir_existence, get_path_components, get_files_stem
 from NeuRIS.utils.utils_geometry import get_pose_inv, get_world_normal, quat_to_rot, save_points
 
@@ -91,6 +91,9 @@ class Dataset:
         # path_cam = os.path.join(self.data_dir, './cameras_sphere.npz')  # cameras_sphere, cameras_linear_init
         # camera_dict = np.load(path_cam)
         # logging.info(f'Load camera dict: {path_cam.split("/")[-1]}')
+
+        cameras = read_cameras_binary(self.data_dir + "/sparse/0/cameras.bin")
+        print("[Dataset] cameras.keys():", cameras.keys())
 
         images = read_images_binary(self.data_dir + "/sparse/0/images.bin")
         self.world_mats_np = []
