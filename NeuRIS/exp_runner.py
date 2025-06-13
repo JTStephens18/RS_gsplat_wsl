@@ -280,10 +280,6 @@ class Runner:
         elif self.dataset_type == 'indoor':
             #scene, view_cams, gaussians, pipe, background, gs2sdf_from = gs_render_conf
             camtoworld, gs2sdf_from = gs_render_conf
-
-            c2w = self.dataset.pose_all[idx_img]
-            print("[Exp Runner c2w] ", c2w)
-            print("[Exp Runner camtoworld] ", camtoworld[0])
             
             if self.iter_step < gs2sdf_from or self.iter_step % 3000 < self.args.no_sam_iter: # 清空opacity的轮次不要过多指导
                 near, far = torch.zeros(batch_size, 1).to(self.device), self.sample_range_indoor * torch.ones(batch_size, 1).to(self.device)
@@ -309,9 +305,10 @@ class Runner:
                 gs_depth = depths[0, :, :, 0]
                 # viewpoint_camera负责对应 有c2w(Rt) 和内参 K 可以将深度信息映射到世界坐标系
                 # K = self.dataset.intrinsics_all[idx_img]
-                c2w = self.dataset.pose_all[idx_img]
-                print("[Exp Runner c2w] ", c2w.shape)
-                print("[Exp Runner camtoworld] ", camtoworld.shape)
+                # c2w = self.dataset.pose_all[idx_img]
+                # print("[Exp Runner c2w] ", c2w.shape)
+                # print("[Exp Runner camtoworld] ", camtoworld.shape)
+                c2w = camtoworld[0]
                 w2c = torch.linalg.inv(c2w)
 
                 # 转换射线到相机坐标
