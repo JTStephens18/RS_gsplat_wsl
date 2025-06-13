@@ -119,10 +119,9 @@ pip install -r requirements.txt
 
 ### Step 8. Running an example
 
-'''bash
+```bash
 python simple_trainer.py default --data_dir ~/js-hackweek-virginia/RS_gsplat_wsl/datasets/office_0_1 --data_factor 1 --result_dir ~/js-hackweek-virginia/RS_gsplat_wsl/datasets/office_0_1/gsplat_sdf_base_mcmc
-
-'''
+```
 
 ## Evaluation
 

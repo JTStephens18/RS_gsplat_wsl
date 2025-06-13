@@ -180,41 +180,41 @@ class SDFStrategy(Strategy):
             #and step % self.geo_interval == 3
             and step % self.reset_every >= self.pause_refine_after_reset
         ):
-            # # grow GSs
-            # n_dupli, n_split = self._grow_gs(params, optimizers, state, step)
-            # if self.verbose:
-            #     print(
-            #         f"Step {step}: SDF: {n_dupli} GSs duplicated, SDF: {n_split} GSs split. "
-            #         f"Now having {len(params['means'])} GSs."
-            #     )
+            # grow GSs
+            n_dupli, n_split = self._grow_gs(params, optimizers, state, step, sdfval)
+            if self.verbose:
+                print(
+                    f"Step {step}: SDF: {n_dupli} GSs duplicated, SDF: {n_split} GSs split. "
+                    f"Now having {len(params['means'])} GSs."
+                )
 
-            # # prune GSs
-            # n_prune = self._prune_gs(params, optimizers, state, step)
-            # if self.verbose:
-            #     print(
-            #         f"Step {step}: SDF: {n_prune} GSs pruned. "
-            #         f"Now having {len(params['means'])} GSs."
-            #     )
+            # prune GSs
+            n_prune = self._prune_gs(params, optimizers, state, step)
+            if self.verbose:
+                print(
+                    f"Step {step}: SDF: {n_prune} GSs pruned. "
+                    f"Now having {len(params['means'])} GSs."
+                )
 
 
-            max_grad = self.grow_grad2d
-            min_opacity = self.prune_opa
-            extent = state["scene_scale"]
-            max_screen_size = None
+            # max_grad = self.grow_grad2d
+            # min_opacity = self.prune_opa
+            # extent = state["scene_scale"]
+            # max_screen_size = None
 
-            grads = state["grad2d"] / state["count"].clamp_min(1)
+            # grads = state["grad2d"] / state["count"].clamp_min(1)
 
-            n_dupli, n_split, n_prune = self.sdf_densify_and_prune_with_ops(
-                params=params,
-                optimizers=optimizers,
-                state=state,
-                grads=grads,
-                max_grad=max_grad,
-                min_opacity=min_opacity,
-                extent=extent,
-                max_screen_size=max_screen_size,
-                sdf_val=sdfval,  # Use the gaussian function defined above
-            )
+            # n_dupli, n_split, n_prune = self.sdf_densify_and_prune_with_ops(
+            #     params=params,
+            #     optimizers=optimizers,
+            #     state=state,
+            #     grads=grads,
+            #     max_grad=max_grad,
+            #     min_opacity=min_opacity,
+            #     extent=extent,
+            #     max_screen_size=max_screen_size,
+            #     sdf_val=sdfval,  # Use the gaussian function defined above
+            # )
 
             if self.verbose:
                 print(
@@ -314,6 +314,21 @@ class SDFStrategy(Strategy):
                 radii / float(max(info["width"], info["height"])),
             )
 
+
+
+    def gaussian_fun(self, s, sigma):
+        # return (-s**2)/(2*sigma**2)
+        return torch.exp((-s**2)/(2*torch.square(sigma)))
+
+    def cal_percentile(self, x):
+        percentiles = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+        percentile_values = []
+        for p in percentiles:
+            k = int(x.numel() * p / 100)  # 计算百分位对应的位置
+            percentile_val, _ = torch.kthvalue(x.flatten(), k)
+            percentile_values.append(percentile_val.item())
+        return percentile_values
+
     @torch.no_grad()
     def _grow_gs(
         self,
@@ -321,6 +336,7 @@ class SDFStrategy(Strategy):
         optimizers: Dict[str, torch.optim.Optimizer],
         state: Dict[str, Any],
         step: int,
+        sdfval: callable
     ) -> Tuple[int, int]:
         count = state["count"]
         grads = state["grad2d"] / count.clamp_min(1)
@@ -332,13 +348,19 @@ class SDFStrategy(Strategy):
             <= self.grow_scale3d * state["scene_scale"]
         )
         is_dupli = is_grad_high & is_small
+        #n_dupli = is_dupli.sum().item()
+
+        is_dupli = self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()) > 0.95
         n_dupli = is_dupli.sum().item()
 
         is_large = ~is_small
         is_split = is_grad_high & is_large
         if step < self.refine_scale2d_stop_iter:
             is_split |= state["radii"] > self.grow_scale2d
-        n_split = is_split.sum().item()
+        #n_split = is_split.sum().item()
+
+        is_split = self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()) > 0.95
+        n_split = is_split.sum().item() 
 
         # first duplicate
         if n_dupli > 0:
@@ -387,16 +409,15 @@ class SDFStrategy(Strategy):
 
             is_prune = is_prune | is_too_big
 
+        #n_prune = is_prune.sum().item()
+        
+        prune_guidance = -(1 - self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()))
+        is_prune = (prune_guidance < self.prune_opa).squeeze()
         n_prune = is_prune.sum().item()
         if n_prune > 0:
             sdf_remove(params=params, optimizers=optimizers, state=state, mask=is_prune)
 
         return n_prune
-
-
-    def gaussian_fun(self, s, sigma):
-        # return (-s**2)/(2*sigma**2)
-        return torch.exp((-s**2)/(2*torch.square(sigma)))
 
     def cal_percentile(self, x):
         percentiles = [10, 20, 30, 40, 50, 60, 70, 80, 90]
