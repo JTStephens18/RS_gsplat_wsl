@@ -269,6 +269,46 @@ def create_camera_to_world_matrix(qvec, tvec):
 
     return cam_to_world_matrix
 
+
+def compute_world_to_image_matrix(camera_params, image_params):
+    """
+    Compute the world-to-image projection matrix P = K[R|T].
+    
+    Args:
+        camera_params: dictionary containing intrinsic parameters
+                      {'fx': float, 'fy': float, 'cx': float, 'cy': float, 'skew': float (optional)}
+        image_params: dictionary containing extrinsic parameters
+                     {'quaternion': array [w,x,y,z], 'translation': array [tx,ty,tz]}
+    
+    Returns:
+        3x4 world-to-image projection matrix P
+    """
+    # Extract intrinsic parameters
+    fx = camera_params['fx']
+    fy = camera_params['fy']
+    cx = camera_params['cx']
+    cy = camera_params['cy']
+    skew = camera_params.get('skew', 0.0)
+    
+    # Construct intrinsic matrix
+    K = construct_intrinsic_matrix(fx, fy, cx, cy, skew)
+    
+    # Extract extrinsic parameters
+    quaternion = np.array(image_params['quaternion'])
+    translation = np.array(image_params['translation'])
+    
+    # Convert quaternion to rotation matrix
+    R = quaternion_to_rotation_matrix(quaternion)
+    
+    # Construct extrinsic matrix
+    extrinsic = construct_extrinsic_matrix(R, translation)
+    
+    # Compute world-to-image matrix
+    P = K @ extrinsic
+
+    return P
+    
+
 def get_planes_from_normalmap(dir_pred, thres_uncertain = 0):
     '''Get normals from normal map for indoor dataset (ScanNet), which was got by the following paper:
     Surface normal estimation with uncertainty
