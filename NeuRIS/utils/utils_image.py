@@ -190,48 +190,26 @@ def read_images_binary(path_to_model_file):
 
 def read_cameras_binary(path_to_model_file):
     """
-    Read COLMAP cameras.bin file
-    
-    Args:
-        path_to_model_file: Path to cameras.bin file
-        
-    Returns:
-        Dictionary mapping camera_id to Camera namedtuple
+    see: src/base/reconstruction.cc
+        void Reconstruction::WriteCamerasBinary(const std::string& path)
+        void Reconstruction::ReadCamerasBinary(const std::string& path)
     """
     cameras = {}
-    
-    with open(path_to_model_file, "rb") as f:
-        num_cameras = struct.unpack("<Q", f.read(8))[0]
-        
+    with open(path_to_model_file, "rb") as fid:
+        num_cameras = read_next_bytes(fid, 8, "Q")[0]
         for _ in range(num_cameras):
-            # Read camera ID
-            camera_id = struct.unpack("<I", f.read(4))[0]
-            
-            # Read model type
-            model_id = struct.unpack("<I", f.read(4))[0]
-            model_name = CAMERA_MODELS.get(model_id, f"UNKNOWN_{model_id}")
-            
-            # Read image dimensions
-            width = struct.unpack("<Q", f.read(8))[0]
-            height = struct.unpack("<Q", f.read(8))[0]
-            
-            # Read number of parameters
-            num_params = struct.unpack("<Q", f.read(8))[0]
-            
-            # Read parameters
-            params = []
-            for _ in range(num_params):
-                param = struct.unpack("<d", f.read(8))[0]
-                params.append(param)
-            
+            camera_properties = read_next_bytes(fid, num_bytes=24, format_char_sequence="iiQQ")
+            camera_id = camera_properties[0]
+            model_id = camera_properties[1]
+            model_name = CAMERA_MODEL_IDS[camera_properties[1]].model_name
+            width = camera_properties[2]
+            height = camera_properties[3]
+            num_params = CAMERA_MODEL_IDS[model_id].num_params
+            params = read_next_bytes(fid, num_bytes=8 * num_params, format_char_sequence="d" * num_params)
             cameras[camera_id] = Camera(
-                id=camera_id,
-                model=model_name,
-                width=width,
-                height=height,
-                params=np.array(params)
+                id=camera_id, model=model_name, width=width, height=height, params=np.array(params)
             )
-    
+        assert len(cameras) == num_cameras
     return cameras
 
 def qvec2rotmat(qvec):
