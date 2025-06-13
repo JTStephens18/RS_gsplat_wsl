@@ -585,7 +585,7 @@ class Runner:
         print("=== Detailed Ray Sampling Debug ===")
         
         # Get a batch of training data
-        data = self.dataset.random_get_rays_at(0, 100)  # Get 100 rays
+        data, pixels_x, pixels_y, _, _, _  = self.dataset.random_get_rays_at(0, 100)  # Get 100 rays
         rays_o, rays_d = data[:, :3], data[:, 3:6]
         
         print(f"Ray origins shape: {rays_o.shape}")
