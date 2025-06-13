@@ -93,7 +93,14 @@ class Dataset:
         # logging.info(f'Load camera dict: {path_cam.split("/")[-1]}')
 
         cameras = read_cameras_binary(self.data_dir + "/sparse/0/cameras.bin")
-        print("[Dataset] cameras.keys():", cameras.keys())
+
+        print(f"Total cameras loaded: {len(cameras)}")
+        for camera_id, camera in cameras.items():
+            print(f"Camera ID: {camera_id}")
+            print(f"  Model: {camera.model}")
+            print(f"  Dimensions: {camera.width} x {camera.height}")
+            print(f"  Parameters: {camera.params}")
+            print(f"  Number of parameters: {len(camera.params)}")
 
         images = read_images_binary(self.data_dir + "/sparse/0/images.bin")
         self.world_mats_np = []
