@@ -525,11 +525,13 @@ class Runner:
 
         # near, far, logs_input = self.get_near_far(rays_o, rays_d,  image_perm, iter_i, pixels_x, pixels_y)
         if self.args.is_sample_gui:
+            print("[EXP Runner] Sample GUI is on...")
             near, far, logs_input = self.get_near_far(rays_o, rays_d, idx_img, depths, gs_render_conf, image_perm, iter_i, pixels_x, pixels_y)
         else:
             near, far, logs_input = self.get_near_far0(rays_o, rays_d,  image_perm, iter_i, pixels_x, pixels_y)
             self.sample_info = [near.mean().item(), far.mean().item(), ((far-near)>1.9).sum()]
         
+        print("[EXP Runner] After get_near_far")
         # near torch.Size([512, 1]) 全0
         # far torch.Size([512, 1]) 全2
         
