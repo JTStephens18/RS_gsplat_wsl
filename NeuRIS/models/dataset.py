@@ -106,7 +106,7 @@ class Dataset:
         self.world_mats_np = []
         print("Cam ", next(iter(self.cameras.items())))
         print("Images ", next(iter(images.items())) )
-        cam_test, img_test = self.format_colmap_data_for_projection(next(iter(self.cameras.items())), next(iter(images.items())))
+        cam_test, img_test = self.format_colmap_data_for_projection(next(iter(self.cameras.items()))["Camera"], next(iter(images.items()))["Image"])
         w2i = compute_world_to_image_matrix(cam_test, img_test)
         c2w_inv = np.linalg.inv(create_camera_to_world_matrix(images[0].qvec, images[0].tvec))
         print("World to image ", w2i)
