@@ -269,6 +269,64 @@ def create_camera_to_world_matrix(qvec, tvec):
 
     return cam_to_world_matrix
 
+def quaternion_to_rotation_matrix(q):
+    """
+    Convert a quaternion to a 3x3 rotation matrix.
+    
+    Args:
+        q: quaternion as numpy array [w, x, y, z] (scalar first)
+    
+    Returns:
+        3x3 rotation matrix
+    """
+    # Normalize quaternion
+    q = q / np.linalg.norm(q)
+    w, x, y, z = q
+    
+    # Compute rotation matrix elements
+    R = np.array([
+        [1 - 2*(y**2 + z**2), 2*(x*y - w*z), 2*(x*z + w*y)],
+        [2*(x*y + w*z), 1 - 2*(x**2 + z**2), 2*(y*z - w*x)],
+        [2*(x*z - w*y), 2*(y*z + w*x), 1 - 2*(x**2 + y**2)]
+    ])
+    
+    return R
+
+def construct_intrinsic_matrix(fx, fy, cx, cy, skew=0.0):
+    """
+    Construct the camera intrinsic matrix K.
+    
+    Args:
+        fx, fy: focal lengths in x and y directions
+        cx, cy: principal point coordinates
+        skew: skew parameter (usually 0 for most cameras)
+    
+    Returns:
+        3x3 intrinsic matrix K
+    """
+    K = np.array([
+        [fx, skew, cx],
+        [0,  fy,   cy],
+        [0,  0,    1]
+    ])
+    
+    return K
+
+def construct_extrinsic_matrix(R, T):
+    """
+    Construct the extrinsic matrix [R|T].
+    
+    Args:
+        R: 3x3 rotation matrix
+        T: 3x1 translation vector
+    
+    Returns:
+        3x4 extrinsic matrix
+    """
+    T = T.reshape(3, 1) if T.ndim == 1 else T
+    extrinsic = np.hstack([R, T])
+    return extrinsic
+
 
 def compute_world_to_image_matrix(camera_params, image_params):
     """
