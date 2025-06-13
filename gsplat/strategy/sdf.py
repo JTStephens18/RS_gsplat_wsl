@@ -96,6 +96,7 @@ class SDFStrategy(Strategy):
     key_for_gradient: Literal["means2d", "gradient_2dgs"] = "means2d"
     geo_interval: int = 100
     percent_dense: float = 0.01
+    sdf_prune_threshold = -0.002  
 
     def initialize_state(self, scene_scale: float = 1.0) -> Dict[str, Any]:
         """Initialize and return the running state for this strategy.
@@ -413,127 +414,127 @@ class SDFStrategy(Strategy):
         #n_prune = is_prune.sum().item()
         
         prune_guidance = -(1 - self.gaussian_fun(sdfval(params["means"]), torch.sigmoid(params["opacities"]).squeeze()))
-        is_prune = (prune_guidance < self.prune_opa).squeeze()
+        is_prune = (prune_guidance < self.sdf_prune_threshold).squeeze()
         n_prune = is_prune.sum().item()
         if n_prune > 0:
             sdf_remove(params=params, optimizers=optimizers, state=state, mask=is_prune)
 
         return n_prune
 
-    def cal_percentile(self, x):
-        percentiles = [10, 20, 30, 40, 50, 60, 70, 80, 90]
-        percentile_values = []
-        for p in percentiles:
-            k = int(x.numel() * p / 100)  # 计算百分位对应的位置
-            percentile_val, _ = torch.kthvalue(x.flatten(), k)
-            percentile_values.append(percentile_val.item())
-        return percentile_values
+    # def cal_percentile(self, x):
+    #     percentiles = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+    #     percentile_values = []
+    #     for p in percentiles:
+    #         k = int(x.numel() * p / 100)  # 计算百分位对应的位置
+    #         percentile_val, _ = torch.kthvalue(x.flatten(), k)
+    #         percentile_values.append(percentile_val.item())
+    #     return percentile_values
 
 
-    def sdf_densify_and_split_with_ops(self, params, optimizers, state, sdf_densify_mask, grads, grad_threshold, scene_extent):
-        n_init_points = params["means"].shape[0]
-        # Extract points that satisfy the gradient condition
-        padded_grad = torch.zeros((n_init_points), device=params["means"].device)
-        if len(grads.shape) > 1:
-            padded_grad[:grads.shape[0]] = torch.norm(grads, dim=-1)
-        else:
-            padded_grad[:grads.shape[0]] = grads
+    # def sdf_densify_and_split_with_ops(self, params, optimizers, state, sdf_densify_mask, grads, grad_threshold, scene_extent):
+    #     n_init_points = params["means"].shape[0]
+    #     # Extract points that satisfy the gradient condition
+    #     padded_grad = torch.zeros((n_init_points), device=params["means"].device)
+    #     if len(grads.shape) > 1:
+    #         padded_grad[:grads.shape[0]] = torch.norm(grads, dim=-1)
+    #     else:
+    #         padded_grad[:grads.shape[0]] = grads
         
-        selected_pts_mask = torch.where(padded_grad >= grad_threshold, True, False)
-        selected_pts_mask = torch.logical_and(selected_pts_mask,
-                                            torch.exp(params["scales"]).max(dim=1).values > self.percent_dense*scene_extent)
-        selected_pts_mask = torch.logical_and(selected_pts_mask, sdf_densify_mask)
+    #     selected_pts_mask = torch.where(padded_grad >= grad_threshold, True, False)
+    #     selected_pts_mask = torch.logical_and(selected_pts_mask,
+    #                                         torch.exp(params["scales"]).max(dim=1).values > self.percent_dense*scene_extent)
+    #     selected_pts_mask = torch.logical_and(selected_pts_mask, sdf_densify_mask)
 
-        n_split = selected_pts_mask.sum().item()
+    #     n_split = selected_pts_mask.sum().item()
         
-        # Use the split function from ops
-        if n_split > 0:
-            split(params=params, optimizers=optimizers, state=state, mask=selected_pts_mask, revised_opacity=False)
+    #     # Use the split function from ops
+    #     if n_split > 0:
+    #         split(params=params, optimizers=optimizers, state=state, mask=selected_pts_mask, revised_opacity=False)
         
-        return n_split
+    #     return n_split
 
-    def sdf_densify_and_clone_with_ops(self, params, optimizers, state, sdf_densify_mask, grads, grad_threshold, scene_extent):
-        # Extract points that satisfy the gradient condition
-        if len(grads.shape) > 1:
-            grad_norm = torch.norm(grads, dim=-1)
-        else:
-            grad_norm = grads
+    # def sdf_densify_and_clone_with_ops(self, params, optimizers, state, sdf_densify_mask, grads, grad_threshold, scene_extent):
+    #     # Extract points that satisfy the gradient condition
+    #     if len(grads.shape) > 1:
+    #         grad_norm = torch.norm(grads, dim=-1)
+    #     else:
+    #         grad_norm = grads
         
-        selected_pts_mask = torch.where(grad_norm >= grad_threshold, True, False)
-        selected_pts_mask = torch.logical_and(selected_pts_mask,
-                                            torch.exp(params["scales"]).max(dim=1).values <= self.percent_dense*scene_extent)
-        selected_pts_mask = torch.logical_and(selected_pts_mask, sdf_densify_mask)
+    #     selected_pts_mask = torch.where(grad_norm >= grad_threshold, True, False)
+    #     selected_pts_mask = torch.logical_and(selected_pts_mask,
+    #                                         torch.exp(params["scales"]).max(dim=1).values <= self.percent_dense*scene_extent)
+    #     selected_pts_mask = torch.logical_and(selected_pts_mask, sdf_densify_mask)
         
-        n_dupli = selected_pts_mask.sum().item()
+    #     n_dupli = selected_pts_mask.sum().item()
         
-        # Use the duplicate function from ops
-        if n_dupli > 0:
-            duplicate(params=params, optimizers=optimizers, state=state, mask=selected_pts_mask)
+    #     # Use the duplicate function from ops
+    #     if n_dupli > 0:
+    #         duplicate(params=params, optimizers=optimizers, state=state, mask=selected_pts_mask)
         
-        return n_dupli
+    #     return n_dupli
 
-    def sdf_densify_and_prune_with_ops(self, params, optimizers, state, grads, max_grad, min_opacity, extent, max_screen_size, sdf_val):
-        """
-        Modified version that returns counts for verbose output and handles gradient information properly.
-        """
-        with torch.no_grad():
-            #PruningThreshold = -0.002  # 裁90%
-            #PruningThreshold = 0.1
-            PruningThreshold = -0.01
-            DesificationThreshold = 0.95  # 70% 以上靠近的进行致密
+    # def sdf_densify_and_prune_with_ops(self, params, optimizers, state, grads, max_grad, min_opacity, extent, max_screen_size, sdf_val):
+    #     """
+    #     Modified version that returns counts for verbose output and handles gradient information properly.
+    #     """
+    #     with torch.no_grad():
+    #         #PruningThreshold = -0.002  # 裁90%
+    #         #PruningThreshold = 0.1
+    #         PruningThreshold = -0.01
+    #         DesificationThreshold = 0.95  # 70% 以上靠近的进行致密
 
-            n_dupli = 0
-            n_split = 0
-            n_prune = 0
+    #         n_dupli = 0
+    #         n_split = 0
+    #         n_prune = 0
 
-            #-----------densify------------------
-            sdf_densify_guidance = self.gaussian_fun(sdf_val(params["means"]), torch.sigmoid(params["opacities"]).squeeze())
-            torch.cuda.empty_cache()
-            sdf_densify_mask = (sdf_densify_guidance > DesificationThreshold).squeeze()
+    #         #-----------densify------------------
+    #         sdf_densify_guidance = self.gaussian_fun(sdf_val(params["means"]), torch.sigmoid(params["opacities"]).squeeze())
+    #         torch.cuda.empty_cache()
+    #         sdf_densify_mask = (sdf_densify_guidance > DesificationThreshold).squeeze()
             
-            # Clone/duplicate operation
-            print("[SDFStrategy] densify and clone ")
-            n_dupli = self.sdf_densify_and_clone_with_ops(params, optimizers, state, sdf_densify_mask, grads, max_grad, extent)
+    #         # Clone/duplicate operation
+    #         print("[SDFStrategy] densify and clone ")
+    #         n_dupli = self.sdf_densify_and_clone_with_ops(params, optimizers, state, sdf_densify_mask, grads, max_grad, extent)
 
-            # Recalculate guidance after cloning (params may have changed)
-            sdf_densify_guidance = self.gaussian_fun(sdf_val(params["means"]), torch.sigmoid(params["opacities"]).squeeze())
-            torch.cuda.empty_cache()
-            sdf_densify_mask = (sdf_densify_guidance > DesificationThreshold).squeeze()
+    #         # Recalculate guidance after cloning (params may have changed)
+    #         sdf_densify_guidance = self.gaussian_fun(sdf_val(params["means"]), torch.sigmoid(params["opacities"]).squeeze())
+    #         torch.cuda.empty_cache()
+    #         sdf_densify_mask = (sdf_densify_guidance > DesificationThreshold).squeeze()
             
-            # Split operation
-            print("[SDFStrategy] densify and split ")
-            n_split = self.sdf_densify_and_split_with_ops(params, optimizers, state, sdf_densify_mask, grads, max_grad, extent)
+    #         # Split operation
+    #         print("[SDFStrategy] densify and split ")
+    #         n_split = self.sdf_densify_and_split_with_ops(params, optimizers, state, sdf_densify_mask, grads, max_grad, extent)
 
-            #-----------prune------------------
-            sdf_prune_guidance = -(1 - self.gaussian_fun(sdf_val(params["means"]), torch.sigmoid(params["opacities"]).squeeze()))
-            torch.cuda.empty_cache()
-            sdf_prune_mask = (sdf_prune_guidance < PruningThreshold).squeeze()
+    #         #-----------prune------------------
+    #         sdf_prune_guidance = -(1 - self.gaussian_fun(sdf_val(params["means"]), torch.sigmoid(params["opacities"]).squeeze()))
+    #         torch.cuda.empty_cache()
+    #         sdf_prune_mask = (sdf_prune_guidance < PruningThreshold).squeeze()
             
-            # Count gaussians to be pruned
-            n_prune += sdf_prune_mask.sum().item()
+    #         # Count gaussians to be pruned
+    #         n_prune += sdf_prune_mask.sum().item()
             
-            # Use the remove function for SDF-based pruning
-            if n_prune > 0:
-                sdf_remove(params=params, optimizers=optimizers, state=state, mask=sdf_prune_mask)
+    #         # Use the remove function for SDF-based pruning
+    #         if n_prune > 0:
+    #             sdf_remove(params=params, optimizers=optimizers, state=state, mask=sdf_prune_mask)
 
-            # Additional pruning based on opacity and size
-            print("[SDFStrategy] additional pruning ")
-            prune_mask = (torch.sigmoid(params["opacities"]) < min_opacity).squeeze()
-            if max_screen_size and hasattr(self, 'max_radii2D'):
-                big_points_vs = self.max_radii2D > max_screen_size
-                big_points_ws = torch.exp(params["scales"]).max(dim=1).values > 0.1 * extent
-                prune_mask = torch.logical_or(torch.logical_or(prune_mask, big_points_vs), big_points_ws)
+    #         # Additional pruning based on opacity and size
+    #         print("[SDFStrategy] additional pruning ")
+    #         prune_mask = (torch.sigmoid(params["opacities"]) < min_opacity).squeeze()
+    #         if max_screen_size and hasattr(self, 'max_radii2D'):
+    #             big_points_vs = self.max_radii2D > max_screen_size
+    #             big_points_ws = torch.exp(params["scales"]).max(dim=1).values > 0.1 * extent
+    #             prune_mask = torch.logical_or(torch.logical_or(prune_mask, big_points_vs), big_points_ws)
             
-            # Count additional pruning
-            additional_prune = prune_mask.sum().item()
-            n_prune += additional_prune
+    #         # Count additional pruning
+    #         additional_prune = prune_mask.sum().item()
+    #         n_prune += additional_prune
             
-            # Use the remove function for additional pruning
-            if additional_prune > 0:
-                sdf_remove(params=params, optimizers=optimizers, state=state, mask=prune_mask)
+    #         # Use the remove function for additional pruning
+    #         if additional_prune > 0:
+    #             sdf_remove(params=params, optimizers=optimizers, state=state, mask=prune_mask)
             
-            torch.cuda.empty_cache()
+    #         torch.cuda.empty_cache()
 
-            print("[SDFStrategy] End function ")
+    #         print("[SDFStrategy] End function ")
             
-            return n_dupli, n_split, n_prune
+    #         return n_dupli, n_split, n_prune
