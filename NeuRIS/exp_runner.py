@@ -585,7 +585,7 @@ class Runner:
         print("=== Detailed Ray Sampling Debug ===")
         
         # Get a batch of training data
-        data = self.dataset.gen_random_rays_at(0, 100)  # Get 100 rays
+        data = self.dataset.random_get_rays_at(0, 100)  # Get 100 rays
         rays_o = data['rays_o'].cuda()  # Ray origins
         rays_d = data['rays_d'].cuda()  # Ray directions
         
