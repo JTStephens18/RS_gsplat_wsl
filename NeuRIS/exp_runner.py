@@ -819,7 +819,7 @@ class Runner:
         # self.debug_initialization_bias()
         # self.test_sphere_overfitting()
 
-        debug_ray_sampling_detailed()
+        self.debug_ray_sampling_detailed()
 
         if self.iter_step % 1000 == 0:  # Check every 1000 steps
             print(f"=== Ray Intersection Debug at Step {self.iter_step} ===")
