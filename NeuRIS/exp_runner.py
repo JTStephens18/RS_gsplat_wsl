@@ -280,6 +280,10 @@ class Runner:
         elif self.dataset_type == 'indoor':
             #scene, view_cams, gaussians, pipe, background, gs2sdf_from = gs_render_conf
             camtoworld, gs2sdf_from = gs_render_conf
+
+            c2w = self.dataset.pose_all[idx_img]
+            print("[Exp Runner c2w] ", c2w.shape)
+            print("[Exp Runner camtoworld] ", camtoworld.shape)
             
             if self.iter_step < gs2sdf_from or self.iter_step % 3000 < self.args.no_sam_iter: # 清空opacity的轮次不要过多指导
                 near, far = torch.zeros(batch_size, 1).to(self.device), self.sample_range_indoor * torch.ones(batch_size, 1).to(self.device)
@@ -501,7 +505,6 @@ class Runner:
 
 
     def get_model_input(self, image_perm, iter_i, gs_render_conf, depths):
-        print("[EXP Runner] Get model input...")
         input_model = {}
 
         idx_img = image_perm[self.iter_step % self.dataset.n_images] 
@@ -525,13 +528,11 @@ class Runner:
 
         # near, far, logs_input = self.get_near_far(rays_o, rays_d,  image_perm, iter_i, pixels_x, pixels_y)
         if self.args.is_sample_gui:
-            print("[EXP Runner] Sample GUI is on...")
             near, far, logs_input = self.get_near_far(rays_o, rays_d, idx_img, depths, gs_render_conf, image_perm, iter_i, pixels_x, pixels_y)
         else:
             near, far, logs_input = self.get_near_far0(rays_o, rays_d,  image_perm, iter_i, pixels_x, pixels_y)
             self.sample_info = [near.mean().item(), far.mean().item(), ((far-near)>1.9).sum()]
         
-        print("[EXP Runner] After get_near_far")
         # near torch.Size([512, 1]) 全0
         # far torch.Size([512, 1]) 全2
         
