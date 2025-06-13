@@ -12,7 +12,7 @@ from icecream import ic
 from scipy.spatial.transform import Rotation as Rot
 from scipy.spatial.transform import Slerp
 
-from NeuRIS.utils.utils_image import read_images, write_image, write_images, read_images_binary, read_cameras_binary, create_camera_to_world_matrix
+from NeuRIS.utils.utils_image import read_images, write_image, write_images, read_images_binary, read_cameras_binary, create_camera_to_world_matrix, compute_world_to_image_matrix
 from NeuRIS.utils.utils_io import checkExistence, ensure_dir_existence, get_path_components, get_files_stem
 from NeuRIS.utils.utils_geometry import get_pose_inv, get_world_normal, quat_to_rot, save_points
 
