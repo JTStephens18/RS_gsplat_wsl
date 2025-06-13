@@ -622,7 +622,7 @@ class Runner:
         
         # Query SDF at sample points
         with torch.no_grad():
-            sdf_values = self.sdf_network.sdf(pts_flat)
+            sdf_values = self.sdf_network_fine.sdf(pts_flat)
             sdf_values = sdf_values.reshape(rays_o.shape[0], n_samples)
         
         print(f"SDF values along rays:")
