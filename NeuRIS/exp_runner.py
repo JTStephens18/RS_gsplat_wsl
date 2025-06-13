@@ -241,6 +241,11 @@ class Runner:
     def normalize_dataset_geometry(self, scene_center, scale_factor):
         """Apply normalization to all geometric data in the dataset"""
         import numpy as np
+
+        # Create the full transformation matrix
+        transform_matrix = np.eye(4)
+        transform_matrix[:3, :3] *= scale_factor  # Scale
+        transform_matrix[:3, 3] = -scene_center * scale_factor  # Translate
         
         # 1. Normalize bounding box
         self.dataset.bbox_min = (self.dataset.bbox_min - scene_center) * scale_factor
@@ -257,7 +262,8 @@ class Runner:
                 # Normalize position
                 cam_pos_normalized = (cam_pos - scene_center) * scale_factor
                 # Update world matrix
-                self.dataset.world_mats_np[i][:3, 3] = cam_pos_normalized
+                #self.dataset.world_mats_np[i][:3, 3] = cam_pos_normalized
+                self.dataset.world_mats_np[i] = transform_matrix @ self.dataset.world_mats_np[i]
             
             # Update tensor version
             self.dataset.world_mats = torch.from_numpy(np.array(self.dataset.world_mats_np)).float()
@@ -276,7 +282,8 @@ class Runner:
                     # Numpy array
                     cam_pos = self.dataset.pose_all[i][:3, 3]
                     cam_pos_normalized = (cam_pos - scene_center) * scale_factor
-                    self.dataset.pose_all[i][:3, 3] = cam_pos_normalized
+                    # self.dataset.pose_all[i][:3, 3] = cam_pos_normalized
+                    self.dataset.pose_all[i] = transform_matrix @ self.dataset.pose_all[i]
         
         # Handle scale matrices if they exist
         if hasattr(self.dataset, 'scale_mats_np'):
