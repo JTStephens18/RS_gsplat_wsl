@@ -203,6 +203,107 @@ class Runner:
         self.conf['dataset']['data_dir']  = self.conf['general.data_dir']
         self.dataset = Dataset(self.conf['dataset'], self.args)
 
+        self.normalize_scene()
+
+    def normalize_scene(self):
+        """Normalize the entire scene to fit in a unit bounding box"""
+        print("=== Normalizing Scene to Unit Scale ===")
+        
+        # Get current scene bounds
+        bbox_min = self.dataset.bbox_min
+        bbox_max = self.dataset.bbox_max
+        
+        print(f"Original bbox_min: {bbox_min}")
+        print(f"Original bbox_max: {bbox_max}")
+        
+        # Calculate scene center and scale
+        scene_center = (bbox_max + bbox_min) / 2
+        scene_size = bbox_max - bbox_min
+        max_size = np.max(scene_size)
+        
+        # Scale factor to fit in unit box (with some padding)
+        # Target range: [-0.9, 0.9] to fit within your 2.0 sampling range
+        scale_factor = 1.8 / max_size
+        
+        print(f"Scene size: {scene_size}")
+        print(f"Max dimension: {max_size}")
+        print(f"Scene center: {scene_center}")
+        print(f"Scale factor: {scale_factor}")
+        
+        # Apply normalization to dataset
+        self.normalize_dataset_geometry(scene_center, scale_factor)
+        
+        # Verify normalization
+        print(f"New bbox_min: {self.dataset.bbox_min}")
+        print(f"New bbox_max: {self.dataset.bbox_max}")
+        print("=== Scene Normalization Complete ===")
+
+    def normalize_dataset_geometry(self, scene_center, scale_factor):
+        """Apply normalization to all geometric data in the dataset"""
+        import numpy as np
+        
+        # 1. Normalize bounding box
+        self.dataset.bbox_min = (self.dataset.bbox_min - scene_center) * scale_factor
+        self.dataset.bbox_max = (self.dataset.bbox_max - scene_center) * scale_factor
+        
+        # 2. Normalize camera poses
+        print("Normalizing camera poses...")
+        
+        # Handle world matrices (camera to world transforms)
+        if hasattr(self.dataset, 'world_mats_np'):
+            for i in range(len(self.dataset.world_mats_np)):
+                # Extract camera position (translation part)
+                cam_pos = self.dataset.world_mats_np[i][:3, 3]
+                # Normalize position
+                cam_pos_normalized = (cam_pos - scene_center) * scale_factor
+                # Update world matrix
+                self.dataset.world_mats_np[i][:3, 3] = cam_pos_normalized
+            
+            # Update tensor version
+            self.dataset.world_mats = torch.from_numpy(self.dataset.world_mats_np).float()
+        
+        # Handle pose matrices (often stored as pose_all)
+        if hasattr(self.dataset, 'pose_all'):
+            for i in range(len(self.dataset.pose_all)):
+                if isinstance(self.dataset.pose_all[i], torch.Tensor):
+                    # Extract position
+                    cam_pos = self.dataset.pose_all[i][:3, 3].cpu().numpy()
+                    # Normalize
+                    cam_pos_normalized = (cam_pos - scene_center) * scale_factor
+                    # Update
+                    self.dataset.pose_all[i][:3, 3] = torch.from_numpy(cam_pos_normalized).float()
+                else:
+                    # Numpy array
+                    cam_pos = self.dataset.pose_all[i][:3, 3]
+                    cam_pos_normalized = (cam_pos - scene_center) * scale_factor
+                    self.dataset.pose_all[i][:3, 3] = cam_pos_normalized
+        
+        # Handle scale matrices if they exist
+        if hasattr(self.dataset, 'scale_mats_np'):
+            for i in range(len(self.dataset.scale_mats_np)):
+                # Scale matrices often contain scene-to-normalized transformation
+                # Update the translation component
+                if self.dataset.scale_mats_np[i].shape[0] >= 4:
+                    trans = self.dataset.scale_mats_np[i][:3, 3]
+                    trans_normalized = (trans - scene_center) * scale_factor
+                    self.dataset.scale_mats_np[i][:3, 3] = trans_normalized
+                    
+                    # Update the scale component
+                    self.dataset.scale_mats_np[i][:3, :3] *= scale_factor
+            
+            # Update tensor version
+            self.dataset.scale_mats = torch.from_numpy(self.dataset.scale_mats_np).float()
+        
+        # 3. Normalize any 3D points if they exist
+        if hasattr(self.dataset, 'points_3d'):
+            if isinstance(self.dataset.points_3d, torch.Tensor):
+                self.dataset.points_3d = (self.dataset.points_3d.cpu().numpy() - scene_center) * scale_factor
+                self.dataset.points_3d = torch.from_numpy(self.dataset.points_3d).float()
+            else:
+                self.dataset.points_3d = (self.dataset.points_3d - scene_center) * scale_factor
+        
+        print(f"Normalized {len(self.dataset.pose_all) if hasattr(self.dataset, 'pose_all') else 0} camera poses")
+
     def build_model(self):
         # Networks
         params_to_train = []
