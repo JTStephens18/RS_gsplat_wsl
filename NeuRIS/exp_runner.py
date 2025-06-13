@@ -585,7 +585,7 @@ class Runner:
         print("=== Ray Depth Sampling Debug ===")
         
         # Get a batch of rays
-        rays_o, rays_d, target_rgb, mask = self.dataset.gen_random_rays_at(0, 1000)
+        rays_o, rays_d, target_rgb, mask = self.dataset.gen_random_rays_at(0, 100)
         
         # Check your current sampling strategy
         with torch.no_grad():
