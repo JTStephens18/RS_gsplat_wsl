@@ -104,8 +104,8 @@ class Dataset:
 
         images = read_images_binary(self.data_dir + "/sparse/0/images.bin")
         self.world_mats_np = []
-        for img in images.items():
-            self.world_mats_np.append(create_camera_to_world_matrix(img[1].qvec, img[1].tvec))
+        for img_id, img_data in images.items():
+            self.world_mats_np.append(np.linalg.inv(create_camera_to_world_matrix(img_data.qvec, img_data.tvec)))
 
         images_lis = None
         for ext in ['.png', '.jpg']:
