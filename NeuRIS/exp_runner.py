@@ -742,9 +742,9 @@ class Runner:
             near, far, logs_input = self.get_near_far0(rays_o, rays_d,  image_perm, iter_i, pixels_x, pixels_y)
             self.sample_info = [near.mean().item(), far.mean().item(), ((far-near)>1.9).sum()]
         
-        self.debug_scene_bounds_and_rays()
-        self.debug_initialization_bias()
-        self.test_sphere_overfitting()
+        # self.debug_scene_bounds_and_rays()
+        # self.debug_initialization_bias()
+        # self.test_sphere_overfitting()
 
         if self.iter_step % 1000 == 0:  # Check every 1000 steps
             print(f"=== Ray Intersection Debug at Step {self.iter_step} ===")
