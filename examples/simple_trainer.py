@@ -813,6 +813,10 @@ class Runner:
             #     with_eval3d=self.cfg.with_eval3d,
             # )
 
+            curr_cam = neuRISRunner.dataset.cameras[image_ids.item()]
+            print("[Simple trainer] Current camera ", curr_cam)
+            print("[Simple trainer] Current camera ", camtoworlds[0])
+
             tmp_renders, _, _ = self.render_depth_rasterize_splats(
                 camtoworlds=camtoworlds,
                 Ks=Ks,
