@@ -580,6 +580,79 @@ class Runner:
         
         print("=" * 50)
 
+    def debug_ray_sampling_detailed(self):
+        """Detailed debug of ray sampling and scene intersection"""
+        print("=== Detailed Ray Sampling Debug ===")
+        
+        # Get a batch of training data
+        data = self.dataset.gen_random_rays_at(0, 100)  # Get 100 rays
+        rays_o = data['rays_o'].cuda()  # Ray origins
+        rays_d = data['rays_d'].cuda()  # Ray directions
+        
+        print(f"Ray origins shape: {rays_o.shape}")
+        print(f"Ray directions shape: {rays_d.shape}")
+        
+        # Check ray origins distribution
+        print(f"Ray origins stats:")
+        print(f"  X range: {rays_o[:, 0].min():.3f} to {rays_o[:, 0].max():.3f}")
+        print(f"  Y range: {rays_o[:, 1].min():.3f} to {rays_o[:, 1].max():.3f}")
+        print(f"  Z range: {rays_o[:, 2].min():.3f} to {rays_o[:, 2].max():.3f}")
+        
+        # Check if rays are actually diverse or all from same camera
+        unique_origins = torch.unique(rays_o, dim=0)
+        print(f"Unique ray origins: {len(unique_origins)} (should be > 1 for multi-view)")
+        
+        # Sample points along rays and check SDF
+        n_samples = 64
+        near, far = 0.1, 2.0
+        
+        # Create sample points along rays
+        t_vals = torch.linspace(0., 1., steps=n_samples).cuda()
+        z_vals = near * (1. - t_vals) + far * t_vals
+        z_vals = z_vals.expand([rays_o.shape[0], n_samples])
+        
+        # Get sample points
+        pts = rays_o[..., None, :] + rays_d[..., None, :] * z_vals[..., :, None]
+        pts_flat = pts.reshape(-1, 3)
+        
+        print(f"Sample points shape: {pts.shape}")
+        print(f"Sample points range:")
+        print(f"  X: {pts_flat[:, 0].min():.3f} to {pts_flat[:, 0].max():.3f}")
+        print(f"  Y: {pts_flat[:, 1].min():.3f} to {pts_flat[:, 1].max():.3f}")
+        print(f"  Z: {pts_flat[:, 2].min():.3f} to {pts_flat[:, 2].max():.3f}")
+        
+        # Query SDF at sample points
+        with torch.no_grad():
+            sdf_values = self.sdf_network.sdf(pts_flat)
+            sdf_values = sdf_values.reshape(rays_o.shape[0], n_samples)
+        
+        print(f"SDF values along rays:")
+        print(f"  Mean: {sdf_values.mean():.3f}")
+        print(f"  Std: {sdf_values.std():.3f}")
+        print(f"  Min: {sdf_values.min():.3f}")
+        print(f"  Max: {sdf_values.max():.3f}")
+        
+        # Check for sign changes (surface crossings)
+        sign_changes = 0
+        for i in range(rays_o.shape[0]):
+            ray_sdf = sdf_values[i]
+            # Count sign changes along this ray
+            signs = torch.sign(ray_sdf)
+            changes = torch.sum(signs[1:] != signs[:-1]).item()
+            if changes > 0:
+                sign_changes += 1
+        
+        print(f"Rays with sign changes: {sign_changes}/{rays_o.shape[0]}")
+        
+        # Analyze specific rays
+        print("\nAnalyzing first few rays:")
+        for i in range(min(5, rays_o.shape[0])):
+            ray_sdf = sdf_values[i]
+            print(f"Ray {i}: SDF range [{ray_sdf.min():.3f}, {ray_sdf.max():.3f}], "
+                f"signs: {torch.sign(ray_sdf).unique().cpu().numpy()}")
+        
+        print("=" * 50)
+
     def debug_initialization_bias(self):
         """Check if initialization bias is appropriate"""
         print("=== Initialization Bias Debug ===")
@@ -745,6 +818,8 @@ class Runner:
         # self.debug_scene_bounds_and_rays()
         # self.debug_initialization_bias()
         # self.test_sphere_overfitting()
+
+        debug_ray_sampling_detailed()
 
         if self.iter_step % 1000 == 0:  # Check every 1000 steps
             print(f"=== Ray Intersection Debug at Step {self.iter_step} ===")
