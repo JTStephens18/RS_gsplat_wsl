@@ -308,8 +308,11 @@ class Dataset:
             self.bbox_min = bbox[:3]
             self.bbox_max = bbox[3:6]
         else:
-            self.bbox_min = np.array([-1.01*self.bbox_size_half, -1.01*self.bbox_size_half, -1.01*self.bbox_size_half])
-            self.bbox_max = np.array([ 1.01*self.bbox_size_half,  1.01*self.bbox_size_half,  1.01*self.bbox_size_half])
+            # self.bbox_min = np.array([-1.01*self.bbox_size_half, -1.01*self.bbox_size_half, -1.01*self.bbox_size_half])
+            # self.bbox_max = np.array([ 1.01*self.bbox_size_half,  1.01*self.bbox_size_half,  1.01*self.bbox_size_half])
+            self.bbox_min = np.array([-494.4674, -641.6310, -136.3006])
+            self.bbox_max = np.array([301.0019, 153.8383, 659.1687])
+
 
         self.iter_step = 0
         
