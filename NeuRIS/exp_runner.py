@@ -580,125 +580,60 @@ class Runner:
         
         print("=" * 50)
 
-    def debug_ray_sampling_detailed(self):
-        """Detailed debug of ray sampling and scene intersection"""
-        print("=== Detailed Ray Sampling Debug ===")
+    def debug_ray_depth_sampling(self):
+        """Debug the depth sampling strategy"""
+        print("=== Ray Depth Sampling Debug ===")
         
-        # Get a batch of training data
-        data, pixels_x, pixels_y, _, _, _  = self.dataset.random_get_rays_at(0, 100)  # Get 100 rays
-        rays_o, rays_d = data[:, :3], data[:, 3:6]
+        # Get a batch of rays
+        rays_o, rays_d, target_rgb, mask = self.dataset.gen_random_rays_at(0, 1000)
         
-        print(f"Ray origins shape: {rays_o.shape}")
-        print(f"Ray directions shape: {rays_d.shape}")
-        
-        # Check ray origins distribution
-        print(f"Ray origins stats:")
-        print(f"  X range: {rays_o[:, 0].min():.3f} to {rays_o[:, 0].max():.3f}")
-        print(f"  Y range: {rays_o[:, 1].min():.3f} to {rays_o[:, 1].max():.3f}")
-        print(f"  Z range: {rays_o[:, 2].min():.3f} to {rays_o[:, 2].max():.3f}")
-        
-        # Check if rays are actually diverse or all from same camera
-        unique_origins = torch.unique(rays_o, dim=0)
-        print(f"Unique ray origins: {len(unique_origins)} (should be > 1 for multi-view)")
-        
-        # Sample points along rays and check SDF
-        n_samples = 64
-        near, far = 0.1, 2.0
-        
-        # Create sample points along rays
-        t_vals = torch.linspace(0., 1., steps=n_samples).cuda()
-        z_vals = near * (1. - t_vals) + far * t_vals
-        z_vals = z_vals.expand([rays_o.shape[0], n_samples])
-        
-        # Get sample points
-        pts = rays_o[..., None, :] + rays_d[..., None, :] * z_vals[..., :, None]
-        pts_flat = pts.reshape(-1, 3)
-        
-        print(f"Sample points shape: {pts.shape}")
-        print(f"Sample points range:")
-        print(f"  X: {pts_flat[:, 0].min():.3f} to {pts_flat[:, 0].max():.3f}")
-        print(f"  Y: {pts_flat[:, 1].min():.3f} to {pts_flat[:, 1].max():.3f}")
-        print(f"  Z: {pts_flat[:, 2].min():.3f} to {pts_flat[:, 2].max():.3f}")
-        
-        # Query SDF at sample points
+        # Check your current sampling strategy
         with torch.no_grad():
-            sdf_values = self.sdf_network_fine.sdf(pts_flat)
-            sdf_values = sdf_values.reshape(rays_o.shape[0], n_samples)
-        
-        print(f"SDF values along rays:")
-        print(f"  Mean: {sdf_values.mean():.3f}")
-        print(f"  Std: {sdf_values.std():.3f}")
-        print(f"  Min: {sdf_values.min():.3f}")
-        print(f"  Max: {sdf_values.max():.3f}")
-        
-        # Check for sign changes (surface crossings)
-        sign_changes = 0
-        for i in range(rays_o.shape[0]):
-            ray_sdf = sdf_values[i]
-            # Count sign changes along this ray
-            signs = torch.sign(ray_sdf)
-            changes = torch.sum(signs[1:] != signs[:-1]).item()
-            if changes > 0:
-                sign_changes += 1
-        
-        print(f"Rays with sign changes: {sign_changes}/{rays_o.shape[0]}")
-        
-        # Analyze specific rays
-        print("\nAnalyzing first few rays:")
-        for i in range(min(5, rays_o.shape[0])):
-            ray_sdf = sdf_values[i]
-            print(f"Ray {i}: SDF range [{ray_sdf.min():.3f}, {ray_sdf.max():.3f}], "
-                f"signs: {torch.sign(ray_sdf).unique().cpu().numpy()}")
-        
-        print("=" * 50)
-
-    def debug_camera_and_scene_alignment(self):
-        """Check if cameras are looking at the right part of the scene"""
-        print("=== Camera and Scene Alignment Debug ===")
-        
-        # Check camera positions and orientations
-        n_cams = min(10, len(self.dataset.poses))
-        print(f"Analyzing first {n_cams} cameras:")
-        
-        for i in range(n_cams):
-            pose = self.dataset.poses[i]
-            cam_pos = pose[:3, 3]
-            cam_forward = -pose[:3, 2]  # Camera looks in -Z direction
+            # Sample depths along rays (using your current strategy)
+            near, far = self.dataset.near_far_from_sphere(rays_o, rays_d)
+            print(f"Near distances: mean={near.mean():.4f}, range=[{near.min():.4f}, {near.max():.4f}]")
+            print(f"Far distances: mean={far.mean():.4f}, range=[{far.min():.4f}, {far.max():.4f}]")
             
-            print(f"Camera {i}:")
-            print(f"  Position: [{cam_pos[0]:.3f}, {cam_pos[1]:.3f}, {cam_pos[2]:.3f}]")
-            print(f"  Forward: [{cam_forward[0]:.3f}, {cam_forward[1]:.3f}, {cam_forward[2]:.3f}]")
+            # Sample points along rays
+            t_vals = torch.linspace(0., 1., steps=64).to(self.device)
+            z_vals = near[...,None] * (1.-t_vals) + far[...,None] * t_vals
             
-            # Check where this camera is looking (sample center of image)
-            H, W = self.dataset.H, self.dataset.W
-            intrinsic = self.dataset.intrinsics[i]
+            print(f"Sampled depths: mean={z_vals.mean():.4f}, range=[{z_vals.min():.4f}, {z_vals.max():.4f}]")
             
-            # Get ray through image center
-            i_center, j_center = H // 2, W // 2
-            dirs = torch.stack([
-                (j_center - intrinsic[0, 2]) / intrinsic[0, 0],
-                -(i_center - intrinsic[1, 2]) / intrinsic[1, 1],
-                -torch.ones_like(torch.tensor(j_center, dtype=torch.float32))
-            ], -1)
+            # Get points along rays
+            pts = rays_o[...,None,:] + rays_d[...,None,:] * z_vals[...,:,None]
+            pts_flat = pts.reshape(-1, 3)
             
-            # Transform ray direction to world coordinates
-            rays_d = torch.sum(dirs[..., None, :] * pose[:3, :3], -1)
-            rays_d = rays_d / torch.norm(rays_d)
+            # Query SDF at these points
+            sdf_vals = self.sdf_network(pts_flat).reshape(pts.shape[:-1])
             
-            print(f"  Center ray direction: [{rays_d[0]:.3f}, {rays_d[1]:.3f}, {rays_d[2]:.3f}]")
+            print(f"SDF along rays: mean={sdf_vals.mean():.4f}, std={sdf_vals.std():.4f}")
+            print(f"SDF range: [{sdf_vals.min():.4f}, {sdf_vals.max():.4f}]")
             
-            # Sample points along center ray and check SDF
-            with torch.no_grad():
-                t_vals = torch.linspace(0.1, 2.0, 20)
-                pts = cam_pos + rays_d * t_vals[:, None]
-                sdf_vals = self.sdf_network_fine.sdf(pts.cuda())
-                
-                min_sdf_idx = torch.argmin(torch.abs(sdf_vals))
-                closest_surface_t = t_vals[min_sdf_idx].item()
-                closest_surface_sdf = sdf_vals[min_sdf_idx].item()
-                
-                print(f"  Closest surface at t={closest_surface_t:.3f}, SDF={closest_surface_sdf:.3f}")
-        
+            # Count sign changes (surface intersections)
+            sign_changes = 0
+            for i in range(sdf_vals.shape[0]):  # For each ray
+                ray_sdf = sdf_vals[i]  # SDF values along this ray
+                signs = torch.sign(ray_sdf)
+                # Count transitions from positive to negative or vice versa
+                transitions = (signs[:-1] * signs[1:] < 0).sum()
+                if transitions > 0:
+                    sign_changes += 1
+            
+            print(f"Rays with sign changes: {sign_changes}/{sdf_vals.shape[0]}")
+            
+            # Show where the network expects surfaces
+            surface_distances = []
+            for i in range(min(10, sdf_vals.shape[0])):
+                ray_sdf = sdf_vals[i]
+                ray_depths = z_vals[i]
+                # Find closest point to zero
+                abs_sdf = torch.abs(ray_sdf)
+                min_idx = torch.argmin(abs_sdf)
+                surface_dist = ray_depths[min_idx].item()
+                surface_distances.append(surface_dist)
+            
+            print(f"Expected surface distances: {surface_distances[:5]}")
         print("=" * 50)
 
     def debug_initialization_bias(self):
@@ -867,8 +802,7 @@ class Runner:
         # self.debug_initialization_bias()
         # self.test_sphere_overfitting()
 
-        self.debug_ray_sampling_detailed()
-        self.debug_camera_and_scene_alignment()
+        self.debug_ray_depth_sampling()
 
         if self.iter_step % 1000 == 0:  # Check every 1000 steps
             print(f"=== Ray Intersection Debug at Step {self.iter_step} ===")
