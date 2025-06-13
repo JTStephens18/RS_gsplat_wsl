@@ -836,7 +836,7 @@ class Runner:
         pixels_vu = torch.stack([pixels_y, pixels_x], dim=-1)
         input_model.update({
             'rays_o': rays_o,
-            'rays_d': rays_d,
+            'rays_d': -rays_d,
             'near': near,
             'far': far,
             'mask': mask,
