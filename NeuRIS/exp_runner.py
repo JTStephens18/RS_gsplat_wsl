@@ -501,6 +501,7 @@ class Runner:
 
 
     def get_model_input(self, image_perm, iter_i, gs_render_conf, depths):
+        print("[EXP Runner] Get model input...")
         input_model = {}
 
         idx_img = image_perm[self.iter_step % self.dataset.n_images] 
