@@ -813,7 +813,7 @@ class Runner:
             #     with_eval3d=self.cfg.with_eval3d,
             # )
 
-            curr_cam = torch.linalg.inv(neuRISRunner.dataset.world_mats_np[image_ids.item()])
+            curr_cam = np.linalg.inv(neuRISRunner.dataset.world_mats_np[image_ids.item()])
             print("[Simple trainer] Current camera ", curr_cam)
             print("[Simple trainer] Current camera ", camtoworlds[0])
 
