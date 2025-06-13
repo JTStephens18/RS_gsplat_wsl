@@ -716,7 +716,7 @@ class Dataset:
 
         return scores_all_mean, diff_patch_all, mask_valid_all
 
-    def format_colmap_data_for_projection(colmap_camera, colmap_image):
+    def format_colmap_data_for_projection(self, colmap_camera, colmap_image):
         """
         Convert COLMAP camera and image data to the format expected by compute_world_to_image_matrix.
         
