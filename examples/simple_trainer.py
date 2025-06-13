@@ -813,12 +813,13 @@ class Runner:
             #     with_eval3d=self.cfg.with_eval3d,
             # )
 
-            curr_cam = np.linalg.inv(neuRISRunner.dataset.world_mats_np[image_ids.item()])
+            curr_cam = torch.from_numpy(np.linalg.inv(neuRISRunner.dataset.world_mats_np[image_ids.item()]))
             print("[Simple trainer] Current camera ", curr_cam)
             print("[Simple trainer] Current camera ", camtoworlds[0])
 
             tmp_renders, _, _ = self.render_depth_rasterize_splats(
-                camtoworlds=camtoworlds,
+                #camtoworlds=camtoworlds,
+                camtoworlds=curr_cam,
                 Ks=Ks,
                 width=width,
                 height=height,
