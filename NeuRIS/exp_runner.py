@@ -793,7 +793,7 @@ class Runner:
         # [rays_o, rays_v, color, mask] pixels_x, pixels_y, normal_sample, planes_sample, subplanes_sample
         # torch.Size([512, 3]) torch.Size([512, 3]) torch.Size([512, 3]) torch.Size([512, 1]) | torch.Size([512]) torch.Size([512]) None None None
         
-        rays_o, rays_d, true_rgb, true_mask = data[:, :3], data[:, 3: 6], data[:, 6: 9], data[:, 9: 10] # torch.Size([512, 10])
+        rays_o, rays_d, true_rgb, true_mask = data[:, :3], -data[:, 3: 6], data[:, 6: 9], data[:, 9: 10] # torch.Size([512, 10])
         true_mask =  (true_mask > 0.5).float()
         mask = true_mask
 
