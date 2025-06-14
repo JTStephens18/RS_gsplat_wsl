@@ -181,7 +181,8 @@ class Dataset:
 
         for cam_id, camera in self.cameras.items():
             image = self.find_images_by_camera(camera.id, self.images)
-            cam, img = self.format_colmap_data_for_projection(camera, image)
+            print("Image ", image)
+            cam, img = self.format_colmap_data_for_projection(camera, image[0])
             pose, intrinsics = compute_world_to_image_matrix(cam, img)
             if self.resolution_level > 1.0:
                 intrinsics[:2,:3] /= self.resolution_level
