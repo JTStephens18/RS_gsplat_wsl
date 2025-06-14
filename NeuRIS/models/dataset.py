@@ -164,7 +164,7 @@ class Dataset:
         if self.estimate_scale_mat:
             self.scale_mats_np = np.array(self.estimated_scale_mat())
         else:
-            self.scale_mats_np = np.array([np.eye(4) for _ in range(len(self.world_mats_np))]) * self.conf["scene_scale"]
+            self.scale_mats_np = np.array([np.eye(4) for _ in range(len(self.world_mats_np))]) * self.conf["sdf_scene_scale"]
             #self.scale_mats_np = [camera_dict['scale_mat_%d' % idx].astype(np.float32) for idx in range(self.n_images_ori)]
 
         ### data split

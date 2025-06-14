@@ -226,6 +226,7 @@ class Config:
     k: int = 7
     kk: int = 0
     min_sam_dis: float = 0.2
+    sdf_scene_scale: float = 1.656712310387899
 
 
     
