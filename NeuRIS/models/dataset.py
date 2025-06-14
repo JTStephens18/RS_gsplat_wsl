@@ -121,7 +121,7 @@ class Dataset:
             image = self.find_images_by_camera(camera.id, self.images)
             cam, img = self.format_colmap_data_for_projection(camera, image[0])
             pose, intrinsics = compute_world_to_image_matrix(cam, img)
-            self.world_mats_np.append(torch.from_numpy(pose))
+            self.world_mats_np.append(pose)
 
         images_lis = None
         for ext in ['.png', '.jpg']:
