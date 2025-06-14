@@ -102,7 +102,7 @@ class Dataset:
         #     print(f"  Parameters: {camera.params}")
         #     print(f"  Number of parameters: {len(camera.params)}")
 
-        images = read_images_binary(self.data_dir + "/sparse/0/images.bin")
+        self.images = read_images_binary(self.data_dir + "/sparse/0/images.bin")
         self.world_mats_np = []
         # print("Cam ", next(iter(self.cameras.items())))
         # print("Images ", next(iter(images.items())) )
@@ -111,7 +111,7 @@ class Dataset:
         # c2w_inv = np.linalg.inv(create_camera_to_world_matrix(next(iter(images.items()))[1].qvec, next(iter(images.items()))[1].tvec))
         # print("World to image ", w2i)
         # print("Cam 2 world inverse ", c2w_inv)
-        for img_id, img_data in images.items():
+        for img_id, img_data in self.images.items():
             self.world_mats_np.append(np.linalg.inv(create_camera_to_world_matrix(img_data.qvec, img_data.tvec)))
 
         images_lis = None
@@ -167,14 +167,22 @@ class Dataset:
 
 
         # i = 0
-        for scale_mat, world_mat in zip(self.scale_mats_np, self.world_mats_np):
-            # if np.array_equal(world_mat, world_mat_0000):
-            #     print("stop")
-            P = world_mat @ scale_mat # scale_mat 单位矩阵 world_mat pose形式数值大
-            P = P[:3, :4] # (3, 4)
-            intrinsics, pose = load_K_Rt_from_P(None, P)
-            print("[Dataset], Intrinsics shape ", intrinsics.shape)
-            print("[Dataset], Pose shape ", pose.shape)
+        # for scale_mat, world_mat in zip(self.scale_mats_np, self.world_mats_np):
+        #     # if np.array_equal(world_mat, world_mat_0000):
+        #     #     print("stop")
+        #     P = world_mat @ scale_mat # scale_mat 单位矩阵 world_mat pose形式数值大
+        #     P = P[:3, :4] # (3, 4)
+        #     intrinsics, pose = load_K_Rt_from_P(None, P)
+        #     if self.resolution_level > 1.0:
+        #         intrinsics[:2,:3] /= self.resolution_level
+        #     self.intrinsics_all.append(torch.from_numpy(intrinsics).float())
+
+        #     self.pose_all.append(torch.from_numpy(pose).float())
+
+        for cam_id, camera in self.cameras.items():
+            image = find_images_by_camera(camera["id"], self.images)
+            cam, img = self.format_colmap_data_for_projection(camera, image)
+            pose, intrinsics = compute_world_to_image_matrix(cam, img)
             if self.resolution_level > 1.0:
                 intrinsics[:2,:3] /= self.resolution_level
             self.intrinsics_all.append(torch.from_numpy(intrinsics).float())
@@ -782,4 +790,18 @@ class Dataset:
         }
         
         return camera_data, image_data
+
+    def find_images_by_camera(target_id, image_collection):
+        """
+        Finds all images in a dictionary that match a specific camera_id.
+
+        Args:
+            target_id: The camera_id to search for.
+            image_collection: A dictionary of Image objects.
+
+        Returns:
+            A list of matching Image objects.
+        """
+        # Use a list comprehension to efficiently find all matching images
+        return [image for image in image_collection.values() if image.camera_id == target_id]
             

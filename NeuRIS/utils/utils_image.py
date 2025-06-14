@@ -361,10 +361,15 @@ def compute_world_to_image_matrix(camera_params, image_params):
     # Construct extrinsic matrix
     extrinsic = construct_extrinsic_matrix(R, translation)
     
-    # Compute world-to-image matrix
-    P = K @ extrinsic
-
-    return P
+    # Compute world-to-image matrix (3x4)
+    P_3x4 = K @ extrinsic
+    
+    # Convert to 4x4 matrix by adding bottom row [0, 0, 0, 1]
+    P = np.zeros((4, 4))
+    P[:3, :] = P_3x4  # Copy the 3x4 matrix to top 3 rows
+    P[3, 3] = 1       # Set bottom-right element to 1
+    
+    return P, K
     
 
 def get_planes_from_normalmap(dir_pred, thres_uncertain = 0):
