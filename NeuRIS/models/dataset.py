@@ -111,8 +111,17 @@ class Dataset:
         # c2w_inv = np.linalg.inv(create_camera_to_world_matrix(next(iter(images.items()))[1].qvec, next(iter(images.items()))[1].tvec))
         # print("World to image ", w2i)
         # print("Cam 2 world inverse ", c2w_inv)
-        for img_id, img_data in self.images.items():
-            self.world_mats_np.append(np.linalg.inv(create_camera_to_world_matrix(img_data.qvec, img_data.tvec)))
+
+
+        # for img_id, img_data in self.images.items():
+        #     self.world_mats_np.append(np.linalg.inv(create_camera_to_world_matrix(img_data.qvec, img_data.tvec)))
+
+
+        for cam_id, camera in self.cameras.items():
+            image = self.find_images_by_camera(camera.id, self.images)
+            cam, img = self.format_colmap_data_for_projection(camera, image[0])
+            pose, intrinsics = compute_world_to_image_matrix(cam, img)
+            self.world_mats_np.append(torch.from_numpy(pose))
 
         images_lis = None
         for ext in ['.png', '.jpg']:
