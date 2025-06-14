@@ -167,27 +167,27 @@ class Dataset:
 
 
         # i = 0
-        # for scale_mat, world_mat in zip(self.scale_mats_np, self.world_mats_np):
-        #     # if np.array_equal(world_mat, world_mat_0000):
-        #     #     print("stop")
-        #     P = world_mat @ scale_mat # scale_mat 单位矩阵 world_mat pose形式数值大
-        #     P = P[:3, :4] # (3, 4)
-        #     intrinsics, pose = load_K_Rt_from_P(None, P)
-        #     if self.resolution_level > 1.0:
-        #         intrinsics[:2,:3] /= self.resolution_level
-        #     self.intrinsics_all.append(torch.from_numpy(intrinsics).float())
-
-        #     self.pose_all.append(torch.from_numpy(pose).float())
-
-        for cam_id, camera in self.cameras.items():
-            image = self.find_images_by_camera(camera.id, self.images)
-            cam, img = self.format_colmap_data_for_projection(camera, image[0])
-            pose, intrinsics = compute_world_to_image_matrix(cam, img)
+        for scale_mat, world_mat in zip(self.scale_mats_np, self.world_mats_np):
+            # if np.array_equal(world_mat, world_mat_0000):
+            #     print("stop")
+            P = world_mat @ scale_mat # scale_mat 单位矩阵 world_mat pose形式数值大
+            P = P[:3, :4] # (3, 4)
+            intrinsics, pose = load_K_Rt_from_P(None, P)
             if self.resolution_level > 1.0:
                 intrinsics[:2,:3] /= self.resolution_level
             self.intrinsics_all.append(torch.from_numpy(intrinsics).float())
 
             self.pose_all.append(torch.from_numpy(pose).float())
+
+        # for cam_id, camera in self.cameras.items():
+        #     image = self.find_images_by_camera(camera.id, self.images)
+        #     cam, img = self.format_colmap_data_for_projection(camera, image[0])
+        #     pose, intrinsics = compute_world_to_image_matrix(cam, img)
+        #     if self.resolution_level > 1.0:
+        #         intrinsics[:2,:3] /= self.resolution_level
+        #     self.intrinsics_all.append(torch.from_numpy(intrinsics).float())
+
+        #     self.pose_all.append(torch.from_numpy(pose).float())
 
         # self.images = torch.from_numpy(self.images_np.astype(np.float32)).cpu()  # n_images, H, W, 3   # Save GPU memory
         # self.masks  = torch.from_numpy(self.masks_np.astype(np.float32)).cpu()   # n_images, H, W, 3   # Save GPU memory
