@@ -180,6 +180,7 @@ class Dataset:
         #     self.pose_all.append(torch.from_numpy(pose).float())
 
         for cam_id, camera in self.cameras.items():
+            print("Camera ", camera)
             image = self.find_images_by_camera(camera["id"], self.images)
             cam, img = self.format_colmap_data_for_projection(camera, image)
             pose, intrinsics = compute_world_to_image_matrix(cam, img)
