@@ -370,7 +370,7 @@ def compute_world_to_image_matrix(camera_params, image_params):
     P[3, 3] = 1       # Set bottom-right element to 1
 
     K_4x4 = np.zeros((4, 4))
-    K_4x4[:3, :] = K
+    K_4x4[:3, :3] = K
     K_4x4[3, 3] = 1
     
     return P, K_4x4
