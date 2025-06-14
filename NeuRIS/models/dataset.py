@@ -180,7 +180,6 @@ class Dataset:
         #     self.pose_all.append(torch.from_numpy(pose).float())
 
         for cam_id, camera in self.cameras.items():
-            print("Camera ", camera)
             image = self.find_images_by_camera(camera.id, self.images)
             cam, img = self.format_colmap_data_for_projection(camera, image)
             pose, intrinsics = compute_world_to_image_matrix(cam, img)
@@ -792,7 +791,7 @@ class Dataset:
         
         return camera_data, image_data
 
-    def find_images_by_camera(target_id, image_collection):
+    def find_images_by_camera(self, target_id, image_collection):
         """
         Finds all images in a dictionary that match a specific camera_id.
 
