@@ -278,11 +278,17 @@ class Runner:
                     cam_pos_normalized = (cam_pos - scene_center) * scale_factor
                     # Update
                     self.dataset.pose_all[i][:3, 3] = torch.from_numpy(cam_pos_normalized).float()
+                    if i % 500 == 0:
+                        print("Old pose ", cam_pos)
+                        print("New pose ", self.dataset.pose_all[i])
                 else:
                     # Numpy array
                     cam_pos = self.dataset.pose_all[i][:3, 3]
                     cam_pos_normalized = (cam_pos - scene_center) * scale_factor
                     self.dataset.pose_all[i][:3, 3] = cam_pos_normalized
+                    if i % 500 == 0:
+                        print("Old pose ", cam_pos)
+                        print("New pose ", self.dataset.pose_all[i])
                     #self.dataset.pose_all[i] = transform_matrix @ self.dataset.pose_all[i]
         
         # Handle scale matrices if they exist
